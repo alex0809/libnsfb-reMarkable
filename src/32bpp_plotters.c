@@ -1,0 +1,320 @@
+/*
+ * Copyright 2008 Vincent Sanders <vince@simtec.co.uk>
+ *
+ * This file is part of NetSurf, http://www.netsurf-browser.org/
+ *
+ * NetSurf is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; version 2 of the License.
+ *
+ * NetSurf is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include <stdbool.h>
+#include <endian.h>
+#include <stdlib.h>
+
+#include "libnsfb.h"
+#include "nsfb.h"
+#include "nsfb_plot.h"
+#include "plotters.h"
+#include "plot_util.h"
+
+/* global plot context */
+extern nsfb_t *_plot_nsfb;
+
+static inline uint32_t *
+get_xy_loc(nsfb_t *nsfb, int x, int y)
+{
+        return (uint32_t *)(nsfb->ptr + (y * nsfb->linelen) + (x << 2));
+}
+
+#if __BYTE_ORDER == __BIG_ENDIAN
+static inline nsfb_colour_t pixel_to_colour(uint32_t pixel)
+{
+        return (pixel >> 8) & ~0xFF000000U;
+}
+
+/* convert a colour value to a 32bpp pixel value ready for screen output */
+static inline uint32_t colour_to_pixel(nsfb_colour_t c)
+{
+        return (c << 8);
+}
+#else /* __BYTE_ORDER == __BIG_ENDIAN */
+static inline nsfb_colour_t pixel_to_colour(uint32_t pixel)
+{
+        return ((pixel & 0xFF) << 16) |
+                ((pixel & 0xFF00)) |
+                ((pixel & 0xFF0000) >> 16);
+}
+
+/* convert a colour value to a 32bpp pixel value ready for screen output */
+static inline uint32_t colour_to_pixel(nsfb_colour_t c)
+{
+        return ((c & 0xff0000) >> 16) | (c & 0xff00) | ((c & 0xff) << 16);
+}
+#endif
+
+#define SIGN(x)  ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
+
+static bool 
+line(nsfb_t *nsfb, 
+     nsfb_bbox_t *line, 
+     int line_width, 
+     nsfb_colour_t c, 
+     bool dotted, 
+     bool dashed)
+{
+        int w;
+        uint32_t ent;
+        uint32_t *pvideo;
+        int x, y, i;
+        int dx, dy, sdy;
+        int dxabs, dyabs;
+
+        line_width = line_width;
+        dotted = dotted;
+        dashed = dashed;
+
+        ent = colour_to_pixel(c);
+
+        if (line->y0 == line->y1) {
+                /* horizontal line special cased */
+                if (!nsfb_plot_clip_ctx(nsfb, line))
+                        return true; /* line outside clipping */
+
+                pvideo = get_xy_loc(nsfb, line->x0, line->y0);
+
+                w = line->x1 - line->x0;
+                while (w-- > 0) 
+                        *(pvideo + w) = ent;
+                
+                return true;
+        } else {
+                /* standard bresenham line */
+                if (!nsfb_plot_clip_line_ctx(nsfb, line))
+                        return true; /* line outside clipping */
+
+                /* the horizontal distance of the line */
+                dx = line->x1 - line->x0;
+                dxabs = abs (dx);
+
+                /* the vertical distance of the line */
+                dy = line->y1 - line->y0;
+                dyabs = abs (dy);
+
+                sdy = dx ? SIGN(dy) * SIGN(dx) : SIGN(dy);
+
+                if (dx >= 0)
+                        pvideo = get_xy_loc(nsfb, line->x0, line->y0);
+                else
+                        pvideo = get_xy_loc(nsfb, line->x1, line->y1);
+
+                x = dyabs >> 1;
+                y = dxabs >> 1;
+
+                if (dxabs >= dyabs) {
+                        /* the line is more horizontal than vertical */
+                        for (i = 0; i < dxabs; i++) {
+                                *pvideo = ent;
+
+                                pvideo++;
+                                y += dyabs;
+                                if (y >= dxabs) {
+                                        y -= dxabs;
+                                        pvideo += sdy * (nsfb->linelen>>2);
+                                }
+                        }
+                } else {
+                        /* the line is more vertical than horizontal */
+                        for (i = 0; i < dyabs; i++) {
+                                *pvideo = ent;
+                                pvideo += sdy * (nsfb->linelen >> 2);
+
+                                x += dxabs;
+                                if (x >= dyabs) {
+                                        x -= dyabs;
+                                        pvideo++;
+                                }
+                        }
+                }
+
+        }
+
+	return true;
+}
+
+
+
+static bool fill(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t c)
+{
+        int w;
+        uint32_t *pvid;
+        uint32_t ent;
+        uint32_t llen;
+        uint32_t width;
+        uint32_t height;
+
+        if (!nsfb_plot_clip_ctx(nsfb, rect))
+                return true; /* fill lies outside current clipping region */
+
+        ent = colour_to_pixel(c);
+        width = rect->x1 - rect->x0;
+        height = rect->y1 - rect->y0;
+        llen = (nsfb->linelen >> 2) - width;
+
+        pvid = get_xy_loc(nsfb, rect->x0, rect->y0);
+
+        while (height-- > 0) {
+                w = width;
+                while (w >= 16) {
+                       *pvid++ = ent; *pvid++ = ent;
+                       *pvid++ = ent; *pvid++ = ent;
+                       *pvid++ = ent; *pvid++ = ent;
+                       *pvid++ = ent; *pvid++ = ent;
+                       *pvid++ = ent; *pvid++ = ent;
+                       *pvid++ = ent; *pvid++ = ent;
+                       *pvid++ = ent; *pvid++ = ent;
+                       *pvid++ = ent; *pvid++ = ent;
+                       w-=16;
+                }
+                while (w >= 4) {
+                       *pvid++ = ent; *pvid++ = ent;
+                       *pvid++ = ent; *pvid++ = ent;
+                       w-=4;
+                }
+                while (w > 0) {
+                       *pvid++ = ent;
+                       w--;
+                }
+                pvid += llen;
+        }
+
+	return true;
+}
+
+
+
+
+static bool point(nsfb_t *nsfb, int x, int y, nsfb_colour_t c)
+{
+        uint32_t *pvideo;
+
+        /* check point lies within clipping region */
+        if ((x < nsfb->clip.x0) || 
+            (x >= nsfb->clip.x1) ||
+            (y < nsfb->clip.y0) ||
+            (y >= nsfb->clip.y1)) 
+                return true;
+
+        pvideo = get_xy_loc(nsfb, x, y);
+
+        if ((c & 0xFF000000) != 0) {
+                if ((c & 0xFF000000) != 0xFF000000) {
+                        c = nsfb_plot_ablend(c, pixel_to_colour(*pvideo));
+                }
+
+                *pvideo = colour_to_pixel(c);
+        }
+	return true;
+}
+
+static bool 
+bitmap(nsfb_t *nsfb,
+       nsfb_bbox_t *loc,
+       nsfb_colour_t *pixel, 
+       int bmp_width, 
+       int bmp_height, 
+       int bmp_stride,
+       bool alpha)
+{
+        uint32_t *pvideo;
+        nsfb_colour_t abpixel = 0; /* alphablended pixel */
+        int xloop, yloop;
+	int xoff, yoff; /* x and y offset into image */
+        int x = loc->x0;
+        int y = loc->y0;
+        int width = loc->x1 - loc->x0;
+        int height = loc->y1 - loc->y0;
+        nsfb_bbox_t clipped; /* clipped display */
+
+        /* TODO here we should scale the image from bmp_width to width, for
+         * now simply crop.
+         */
+        if (width > bmp_width)
+                width = bmp_width;
+
+        if (height > bmp_height)
+                height = bmp_height;
+
+        /* The part of the scaled image actually displayed is cropped to the
+         * current context.
+         */
+        clipped.x0 = x;
+        clipped.y0 = y;
+        clipped.x1 = x + width;
+        clipped.y1 = y + height;
+
+        if (!nsfb_plot_clip_ctx(nsfb, &clipped))
+                return true;
+
+        if (height > (clipped.y1 - clipped.y0))
+                height = (clipped.y1 - clipped.y0);
+
+        if (width > (clipped.x1 - clipped.x0))
+                width = (clipped.x1 - clipped.x0);
+
+	xoff = clipped.x0 - x;
+	yoff = (clipped.y0 - y) * bmp_width;
+	height = height * bmp_stride + yoff;
+
+        /* plot the image */
+        pvideo = get_xy_loc(nsfb, clipped.x0, clipped.y0);
+
+        if (alpha) {
+                for (yloop = yoff; yloop < height; yloop += bmp_stride) {
+                        for (xloop = 0; xloop < width; xloop++) {
+                                abpixel = pixel[yloop + xloop + xoff];
+                                if ((abpixel & 0xFF000000) != 0) {
+                                        if ((abpixel & 0xFF000000) != 0xFF000000) {
+                                                abpixel = nsfb_plot_ablend(abpixel,
+                                                                           pixel_to_colour(*(pvideo + xloop)));
+                                        }
+
+                                        *(pvideo + xloop) = colour_to_pixel(abpixel);
+                                }
+                        }
+                        pvideo += (nsfb->linelen >> 2);
+                }
+        } else {
+                for (yloop = yoff; yloop < height; yloop += bmp_stride) {
+                        for (xloop = 0; xloop < width; xloop++) {
+                                abpixel = pixel[yloop + xloop + xoff];
+                                *(pvideo + xloop) = colour_to_pixel(abpixel);
+                        }
+                        pvideo += (nsfb->linelen >> 2);
+                }
+        }
+	return true;
+}
+
+
+
+const nsfb_plotter_fns_t _nsfb_32bpp_plotters = {
+	.line = line,
+	.fill = fill,
+        .point = point,
+        .bitmap = bitmap,
+};
+
+/*
+ * Local Variables:
+ * c-basic-offset:8
+ * End:
+ */
