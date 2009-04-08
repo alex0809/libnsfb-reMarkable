@@ -225,10 +225,119 @@ static bool point(nsfb_t *nsfb, int x, int y, nsfb_colour_t c)
 	return true;
 }
 
+static bool
+glyph1(nsfb_t *nsfb,
+       nsfb_bbox_t *loc,
+       const uint8_t *pixel,
+       int pitch,
+       nsfb_colour_t c)
+{
+        uint32_t *pvideo;
+        int xloop, yloop;
+	int xoff, yoff; /* x and y offset into image */
+        int x = loc->x0;
+        int y = loc->y0;
+        int width = loc->x1 - loc->x0;
+        int height = loc->y1 - loc->y0;
+        uint32_t fgcol;
+        const uint8_t *fntd;
+        uint8_t row;
+
+        if (!nsfb_plot_clip_ctx(nsfb, loc))
+                return true;
+
+        if (height > (loc->y1 - loc->y0))
+                height = (loc->y1 - loc->y0);
+
+        if (width > (loc->x1 - loc->x0))
+                width = (loc->x1 - loc->x0);
+
+	xoff = loc->x0 - x;
+	yoff = loc->y0 - y;
+
+        /* plot the image */
+        pvideo = get_xy_loc(nsfb, loc->x0, loc->y0);
+
+        fgcol = colour_to_pixel(c);
+
+        for (yloop = yoff; yloop < height; yloop++) {
+                fntd = pixel + (yloop * (pitch>>3)) + (xoff>>3);
+                row = (*fntd++) << (xoff & 3);
+                for (xloop = xoff; xloop < width ; xloop++) {
+                        if (((xloop % 8) == 0) && (xloop != 0)) {
+                                row = *fntd++;
+                        }
+
+                        if ((row & 0x80) != 0) {
+                                *(pvideo + xloop) = fgcol;
+                        }
+                        row = row << 1;
+
+                }
+
+                pvideo += (nsfb->linelen >> 2);
+        }
+
+	return true;
+}
+
+static bool
+glyph8(nsfb_t *nsfb,
+       nsfb_bbox_t *loc,
+       const uint8_t *pixel,
+       int pitch,
+       nsfb_colour_t c)
+{
+        uint32_t *pvideo;
+        nsfb_colour_t abpixel; /* alphablended pixel */
+        int xloop, yloop;
+	int xoff, yoff; /* x and y offset into image */
+        int x = loc->x0;
+        int y = loc->y0;
+        int width = loc->x1 - loc->x0;
+        int height = loc->y1 - loc->y0;
+        uint32_t fgcol;
+
+        if (!nsfb_plot_clip_ctx(nsfb, loc))
+                return true;
+
+        if (height > (loc->y1 - loc->y0))
+                height = (loc->y1 - loc->y0);
+
+        if (width > (loc->x1 - loc->x0))
+                width = (loc->x1 - loc->x0);
+
+	xoff = loc->x0 - x;
+	yoff = loc->y0 - y;
+
+        /* plot the image */
+        pvideo = get_xy_loc(nsfb, loc->x0, loc->y0);
+
+        fgcol = c & 0xFFFFFF;
+
+        for (yloop = 0; yloop < height; yloop++) {
+                for (xloop = 0; xloop < width; xloop++) {
+                        abpixel = (pixel[((yoff + yloop) * pitch) + xloop + xoff] << 24) | fgcol;
+                        if ((abpixel & 0xFF000000) != 0) {
+                                /* pixel is not transparent */
+                                if ((abpixel & 0xFF000000) != 0xFF000000) {
+                                        abpixel = nsfb_plot_ablend(abpixel,
+                                                                   pixel_to_colour(*(pvideo + xloop)));
+                                }
+
+                                *(pvideo + xloop) = colour_to_pixel(abpixel);
+                        }
+                }
+                pvideo += (nsfb->linelen >> 2);
+        }
+
+	return true;
+}
+
 static bool 
 bitmap(nsfb_t *nsfb,
        nsfb_bbox_t *loc,
-       nsfb_colour_t *pixel, 
+       const nsfb_colour_t *pixel, 
        int bmp_width, 
        int bmp_height, 
        int bmp_stride,
@@ -311,6 +420,8 @@ const nsfb_plotter_fns_t _nsfb_32bpp_plotters = {
 	.fill = fill,
         .point = point,
         .bitmap = bitmap,
+        .glyph8 = glyph8,
+        .glyph1 = glyph1,
 };
 
 /*

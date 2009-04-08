@@ -60,7 +60,7 @@ typedef	bool (nsfb_plotfn_ellipse_fill_t)(nsfb_t *nsfb, nsfb_bbox_t *ellipse, ns
 
 /** Plot bitmap
  */
-typedef bool (nsfb_plotfn_bitmap_t)(nsfb_t *nsfb, nsfb_bbox_t *loc,  nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha);
+typedef bool (nsfb_plotfn_bitmap_t)(nsfb_t *nsfb, nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha);
 
 
 /** Copy an area of screen 
@@ -68,6 +68,17 @@ typedef bool (nsfb_plotfn_bitmap_t)(nsfb_t *nsfb, nsfb_bbox_t *loc,  nsfb_colour
  * Copy an area of the display.
  */
 typedef bool (nsfb_plotfn_copy_t)(nsfb_t *nsfb, int srcx, int srcy, int width, int height, int dstx, int dsty);
+
+
+/** Plot an 8 bit glyph.
+ */
+typedef bool (nsfb_plotfn_glyph8_t)(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_t *pixel, int pitch, nsfb_colour_t c);
+
+
+/** Plot an 1 bit glyph.
+ */
+typedef bool (nsfb_plotfn_glyph1_t)(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_t *pixel, int pitch, nsfb_colour_t c);
+
 
 /** plotter function table. */
 typedef struct nsfb_plotter_fns_s {
@@ -83,6 +94,8 @@ typedef struct nsfb_plotter_fns_s {
     nsfb_plotfn_bitmap_t *bitmap;
     nsfb_plotfn_point_t *point;
     nsfb_plotfn_copy_t *copy;
+    nsfb_plotfn_glyph8_t *glyph8;
+    nsfb_plotfn_glyph1_t *glyph1;
 } nsfb_plotter_fns_t;
 
 
