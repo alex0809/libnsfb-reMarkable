@@ -7,10 +7,14 @@ COMPONENT_TYPE ?= lib-static
 # Setup the tooling
 include build/makefiles/Makefile.tools
 
+# Reevaluate when used, as BUILDDIR won't be defined yet
+TESTRUNNER = $(BUILDDIR)/test_plottest$(EXEEXT)
+
 # Toolchain flags
 WARNFLAGS := -Wall -Wextra -Wundef -Wpointer-arith -Wcast-align \
 	-Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes \
-	-Wmissing-declarations -Wnested-externs -Werror -pedantic
+	-Wmissing-declarations -Wnested-externs -Werror -pedantic \
+	-Wno-overlength-strings # For nsglobe.c
 CFLAGS := -g $(CFLAGS) -std=c99 -D_BSD_SOURCE -I$(CURDIR)/include/ \
 	-I$(CURDIR)/src $(WARNFLAGS) 
 

@@ -5,6 +5,8 @@
 #include "libnsfb.h"
 #include "libnsfb_plot.h"
 
+#define UNUSED(x) ((x) = (x))
+
 extern const struct {
   unsigned int   width;
   unsigned int   height;
@@ -22,6 +24,9 @@ int main(int argc, char **argv)
     int fbstride;
     int p[] = { 300,300,  350,350, 400,300, 450,250, 400,200};
     int loop;
+
+    UNUSED(argc);
+    UNUSED(argv);
 
     nsfb = nsfb_init(NSFB_FRONTEND_SDL);
     if (nsfb == NULL) {
