@@ -18,6 +18,9 @@ WARNFLAGS := -Wall -Wextra -Wundef -Wpointer-arith -Wcast-align \
 CFLAGS := -g $(CFLAGS) -std=c99 -D_BSD_SOURCE -I$(CURDIR)/include/ \
 	-I$(CURDIR)/src $(WARNFLAGS) 
 
+# TODO: probably want to retrieve SDL from pkg-config
+TESTLDFLAGS = -Wl,--whole-archive -l$(COMPONENT)$(major-version) -Wl,--no-whole-archive -lSDL
+
 include build/makefiles/Makefile.top
 
 # Extra installation rules
