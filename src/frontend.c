@@ -37,7 +37,7 @@ static int frontend_defaults(nsfb_t *nsfb)
 {
     nsfb->width = 800;
     nsfb->height = 600;
-    nsfb->bpp = 32;
+    nsfb->bpp = 16;
 
     /* select plotters for bpp */
     select_plotters(nsfb);

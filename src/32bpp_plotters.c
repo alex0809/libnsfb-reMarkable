@@ -1,19 +1,9 @@
 /*
- * Copyright 2008 Vincent Sanders <vince@simtec.co.uk>
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
  *
- * This file is part of NetSurf, http://www.netsurf-browser.org/
- *
- * NetSurf is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; version 2 of the License.
- *
- * NetSurf is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
  */
 
 #include <stdbool.h>
@@ -25,9 +15,6 @@
 #include "nsfb_plot.h"
 #include "plotters.h"
 #include "plot_util.h"
-
-/* global plot context */
-extern nsfb_t *_plot_nsfb;
 
 static inline uint32_t *
 get_xy_loc(nsfb_t *nsfb, int x, int y)
@@ -255,7 +242,6 @@ glyph1(nsfb_t *nsfb,
 	xoff = loc->x0 - x;
 	yoff = loc->y0 - y;
 
-        /* plot the image */
         pvideo = get_xy_loc(nsfb, loc->x0, loc->y0);
 
         fgcol = colour_to_pixel(c);
@@ -310,7 +296,6 @@ glyph8(nsfb_t *nsfb,
 	xoff = loc->x0 - x;
 	yoff = loc->y0 - y;
 
-        /* plot the image */
         pvideo = get_xy_loc(nsfb, loc->x0, loc->y0);
 
         fgcol = c & 0xFFFFFF;
