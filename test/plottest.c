@@ -86,7 +86,7 @@ int main(int argc, char **argv)
 
     if (nsfb_init_frontend(nsfb) == -1) {
         fprintf(stderr, "Unable to initialise nsfb frontend\n");
-        
+        return 2;
     }
 
     /* get the geometry of the whole screen */

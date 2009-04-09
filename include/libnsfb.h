@@ -7,7 +7,7 @@ typedef struct nsfb_cursor_s nsfb_cursor_t;
 typedef struct nsfb_s nsfb_t;
 typedef uint32_t nsfb_colour_t;
 
-/* bounding box */
+/** bounding box for plotting operations */
 typedef struct nsfb_bbox_s {
     int x0;
     int y0;
@@ -17,8 +17,8 @@ typedef struct nsfb_bbox_s {
 
 /** The type of frontend for a framebuffer context. */
 enum nsfb_frontend_e {
-    NSFB_FRONTEND_NONE = 0, /* Empty frontend.  */
-    NSFB_FRONTEND_SDL,
+    NSFB_FRONTEND_NONE = 0, /**< Empty frontend.  */
+    NSFB_FRONTEND_SDL, /**< SDL frontend */
     NSFB_FRONTEND_LINUX,
     NSFB_FRONTEND_VNC,
     NSFB_FRONTEND_ABLE,
@@ -33,11 +33,27 @@ enum nsfb_frontend_e {
  */
 nsfb_t *nsfb_init(enum nsfb_frontend_e frontend);
 
+/** Finalise nsfb.
+ *
+ * This shuts down and releases all resources associated with an nsfb context.
+ *
+ * @param nsfb The context returned from ::nsfb_init tofinalise
+ */
+int nsfb_finalise(nsfb_t *nsfb);
+
 /** Initialise selected frontend.
  *
- * @param nsfb The context frturned from ::nsfb_init
+ * @param nsfb The context returned from ::nsfb_init
  */
 int nsfb_init_frontend(nsfb_t *nsfb);
+
+/** Select frontend type from a name.
+ * 
+ * @param name The name to select a frontend.
+ * @return The frontend type or NSFB_FRONTEND_NONE if frontend with specified 
+ *         name was not available
+ */
+enum nsfb_frontend_e nsfb_frontend_from_name(const char *name);
 
 /** Process input from a frontend.
  */

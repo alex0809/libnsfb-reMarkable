@@ -96,3 +96,14 @@ nsfb_frontend_rtns_t *nsfb_frontend_get_rtns(enum nsfb_frontend_e type)
     }
     return rtns;
 }
+
+enum nsfb_frontend_e nsfb_frontend_from_name(const char *name)
+{
+    int fend_loop;
+
+    for (fend_loop = 0; fend_loop < frontend_count; fend_loop++) {
+        if (strcmp(frontends[fend_loop].name, name) == 0)
+            return frontends[fend_loop].type;
+    }
+    return NSFB_FRONTEND_NONE;
+}

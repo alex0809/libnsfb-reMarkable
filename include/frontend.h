@@ -1,4 +1,6 @@
-#include "libnsfb.h" /* exported interface */
+/* libnsfb framebuffer frontend support */
+
+#include "libnsfb.h" 
 #include "nsfb.h"
 
 /* frontend default options */
@@ -25,7 +27,6 @@ typedef struct nsfb_frontend_rtns_s {
 
 void _nsfb_register_frontend(const enum nsfb_frontend_e type, const nsfb_frontend_rtns_t *rtns, const char *name);
 
-nsfb_frontend_rtns_t *nsfb_frontend_get_rtns(enum nsfb_frontend_e type);
 
 /* macro which adds a builtin command with no argument limits */
 #define NSFB_FRONTEND_DEF(__name, __type, __rtns)                       \
@@ -33,3 +34,7 @@ nsfb_frontend_rtns_t *nsfb_frontend_get_rtns(enum nsfb_frontend_e type);
     void __name##_register_frontend(void) {                              \
         _nsfb_register_frontend(__type, __rtns, #__name);               \
     }                                                                   
+
+/* Obtain routines for a frontend */
+nsfb_frontend_rtns_t *nsfb_frontend_get_rtns(enum nsfb_frontend_e type);
+

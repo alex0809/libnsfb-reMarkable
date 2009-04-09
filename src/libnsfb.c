@@ -27,6 +27,11 @@ nsfb_init(const enum nsfb_frontend_e frontend_type)
     return newfb;
 }
 
+int nsfb_finalise(nsfb_t *nsfb)
+{
+    return nsfb->frontend_rtns->finalise(nsfb);
+}
+
 
 int
 nsfb_init_frontend(nsfb_t *nsfb)
