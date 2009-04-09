@@ -29,7 +29,10 @@ nsfb_init(const enum nsfb_frontend_e frontend_type)
 
 int nsfb_finalise(nsfb_t *nsfb)
 {
-    return nsfb->frontend_rtns->finalise(nsfb);
+    int ret;
+    ret = nsfb->frontend_rtns->finalise(nsfb);
+    free(nsfb);
+    return ret;
 }
 
 
@@ -52,6 +55,18 @@ int nsfb_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
 int nsfb_release(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
     return nsfb->frontend_rtns->release(nsfb, box);
+}
+
+int nsfb_set_geometry(nsfb_t *nsfb, int width, int height, int bpp) 
+{
+    if (width <= 0)
+        width = nsfb->width;        
+
+    if (height <= 0)
+        height = nsfb->height;        
+
+    if ((bpp != 32) && (bpp != 16) && (bpp != 8))
+        bpp = nsfb->bpp; 
 }
 
 int nsfb_get_geometry(nsfb_t *nsfb, int *width, int *height, int *bpp) 
