@@ -471,12 +471,9 @@ bool select_plotters(nsfb_t *nsfb)
         table = &_nsfb_1bpp_plotters;
         break;
         */
-        /*
-
     case 8:
         table = &_nsfb_8bpp_plotters;
         break;
-        */
 
     case 16:
         table = &_nsfb_16bpp_plotters;

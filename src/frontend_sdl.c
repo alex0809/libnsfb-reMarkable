@@ -9,17 +9,27 @@ static void
 set_palette(nsfb_t *nsfb)
 {
     SDL_Surface *sdl_screen = nsfb->frontend_priv;
-        SDL_Color colors[256];
-        int loop;
-        for(loop=0; loop < 256; loop++){
-                colors[loop].r = loop;
-                colors[loop].g = loop;
-                colors[loop].b = loop;
-                nsfb->palette[loop] = loop << 16 | loop << 8 | loop;
-        }
+    SDL_Color palette[256];
+    int rloop, gloop, bloop;
+    int loop = 0;
 
-        /* Set palette */
-        SDL_SetColors(sdl_screen, colors, 0, 256);
+    /* build a linear R:3 G:3 B:2 colour cube palette. */
+    for (rloop = 0; rloop < 8; rloop++) {
+        for (gloop = 0; gloop < 8; gloop++) {
+            for (bloop = 0; bloop < 4; bloop++) {
+                palette[loop].r = (rloop << 5) | (rloop << 2) | (rloop >> 1);
+                palette[loop].g = (gloop << 5) | (gloop << 2) | (gloop >> 1);
+                palette[loop].b = (bloop << 6) | (bloop << 4) | (bloop << 2) | (bloop);
+                nsfb->palette[loop] = palette[loop].r | 
+                                      palette[loop].g << 8 | 
+                                      palette[loop].b << 16;
+                loop++;
+            }
+        }
+    }
+
+    /* Set palette */
+    SDL_SetColors(sdl_screen, palette, 0, 256);
 
 }
 
