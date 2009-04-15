@@ -9,8 +9,10 @@ typedef int (nsfb_fendfn_defaults_t)(nsfb_t *nsfb);
 typedef int (nsfb_fendfn_init_t)(nsfb_t *nsfb);
 /* frontend finalise */
 typedef int (nsfb_fendfn_fini_t)(nsfb_t *nsfb);
+/* frontend set geometry */
+typedef int (nsfb_fendfn_geometry_t)(nsfb_t *nsfb, int width, int height, int bpp);
 /* frontend input */
-typedef int (nsfb_fendfn_input_t)(nsfb_t *nsfb);
+typedef bool (nsfb_fendfn_input_t)(nsfb_t *nsfb, nsfb_event_t *event, int timeout);
 /* frontend area claim */
 typedef int (nsfb_fendfn_claim_t)(nsfb_t *nsfb, nsfb_bbox_t *box);
 /* frontend area release */
@@ -20,6 +22,7 @@ typedef struct nsfb_frontend_rtns_s {
     nsfb_fendfn_defaults_t *defaults;
     nsfb_fendfn_init_t *initialise;
     nsfb_fendfn_fini_t *finalise;
+    nsfb_fendfn_geometry_t *geometry;
     nsfb_fendfn_input_t *input;
     nsfb_fendfn_claim_t *claim;
     nsfb_fendfn_release_t *release;

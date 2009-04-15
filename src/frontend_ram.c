@@ -16,7 +16,7 @@
 
 #define UNUSED(x) ((x) = (x))
 
-static int linux_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
+static int ram_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
 {
     if (nsfb->frontend_priv != NULL)
         return -1; /* if were already initialised fail */
@@ -28,19 +28,19 @@ static int linux_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
     return 0;
 }
 
-static int linux_initialise(nsfb_t *nsfb)
+static int ram_initialise(nsfb_t *nsfb)
 {
     UNUSED(nsfb);
     return 0;
 }
 
-static int linux_finalise(nsfb_t *nsfb)
+static int ram_finalise(nsfb_t *nsfb)
 {
     UNUSED(nsfb);
     return 0;
 }
 
-static bool linux_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
+static bool ram_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
     UNUSED(nsfb);
     UNUSED(event);
@@ -48,11 +48,11 @@ static bool linux_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     return false;
 }
 
-const nsfb_frontend_rtns_t linux_rtns = {
-    .initialise = linux_initialise,
-    .finalise = linux_finalise,
-    .input = linux_input,
-    .geometry = linux_set_geometry,
+const nsfb_frontend_rtns_t ram_rtns = {
+    .initialise = ram_initialise,
+    .finalise = ram_finalise,
+    .input = ram_input,
+    .geometry = ram_set_geometry,
 };
 
-NSFB_FRONTEND_DEF(linux, NSFB_FRONTEND_LINUX, &linux_rtns)
+NSFB_FRONTEND_DEF(ram, NSFB_FRONTEND_RAM, &ram_rtns)

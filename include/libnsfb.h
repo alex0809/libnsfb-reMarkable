@@ -6,6 +6,7 @@
 typedef struct nsfb_cursor_s nsfb_cursor_t;
 typedef struct nsfb_s nsfb_t;
 typedef uint32_t nsfb_colour_t;
+typedef struct nsfb_event_s nsfb_event_t;
 
 /** bounding box for plotting operations */
 typedef struct nsfb_bbox_s {
@@ -19,10 +20,10 @@ typedef struct nsfb_bbox_s {
 enum nsfb_frontend_e {
     NSFB_FRONTEND_NONE = 0, /**< Empty frontend.  */
     NSFB_FRONTEND_SDL, /**< SDL frontend */
-    NSFB_FRONTEND_LINUX,
-    NSFB_FRONTEND_VNC,
-    NSFB_FRONTEND_ABLE,
-    NSFB_FRONTEND_RAM,
+    NSFB_FRONTEND_LINUX, /**< Linux frontend */
+    NSFB_FRONTEND_VNC, /**< VNC frontend */
+    NSFB_FRONTEND_ABLE, /**< ABLE frontend */
+    NSFB_FRONTEND_RAM, /**< RAM frontend */
 };
 
 /** Initialise nsfb context.
@@ -57,7 +58,7 @@ enum nsfb_frontend_e nsfb_frontend_from_name(const char *name);
 
 /** Process input from a frontend.
  */
-int nsfb_input(nsfb_t *nsfb);
+bool nsfb_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout);
 
 /** Claim an area of screen to be redrawn.
  *

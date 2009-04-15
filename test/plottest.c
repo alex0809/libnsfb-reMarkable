@@ -4,14 +4,15 @@
 
 #include "libnsfb.h"
 #include "libnsfb_plot.h"
+#include "libnsfb_event.h"
 
 #define UNUSED(x) ((x) = (x))
 
 extern const struct {
-  unsigned int   width;
-  unsigned int   height;
-  unsigned int   bytes_per_pixel; /* 3:RGB, 4:RGBA */
-  unsigned char  pixel_data[132 * 135 * 4 + 1];
+    unsigned int  width;
+    unsigned int  height;
+    unsigned int  bytes_per_pixel; /* 3:RGB, 4:RGBA */
+    unsigned char pixel_data[132 * 135 * 4 + 1];
 } nsglobe;
 
 const struct {
@@ -67,6 +68,7 @@ const struct {
 int main(int argc, char **argv)
 {
     nsfb_t *nsfb;
+    nsfb_event_t event;
     nsfb_bbox_t box;
     nsfb_bbox_t box2;
     nsfb_bbox_t box3;
@@ -240,8 +242,8 @@ int main(int argc, char **argv)
     }
 
 
-    while (true )
-        nsfb_input(nsfb);
+    while (event.type != NSFB_EVENT_CONTROL)
+        nsfb_input(nsfb, &event, -1);
 
     return 0;
 }

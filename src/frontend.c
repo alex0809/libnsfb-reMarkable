@@ -1,3 +1,11 @@
+/*
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ */
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -37,7 +45,7 @@ static int frontend_defaults(nsfb_t *nsfb)
 {
     nsfb->width = 800;
     nsfb->height = 600;
-    nsfb->bpp = 8;
+    nsfb->bpp = 16;
 
     /* select plotters for bpp */
     select_plotters(nsfb);

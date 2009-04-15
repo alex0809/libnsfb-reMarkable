@@ -1,8 +1,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "libnsfb.h"
+
 int main(int argc, char **argv)
 {
     nsfb_t *nsfb;
@@ -27,11 +29,19 @@ int main(int argc, char **argv)
         return 2;
     }
 
-    if (nsfb_init_frontend(nsfb) == -1) {
-        fprintf(stderr, "Unable to initialise nsfb frontend\n");
+    if (nsfb_set_geometry(nsfb, 0, 0, 32) == -1) {
+        fprintf(stderr, "Unable to set geometry\n");
         nsfb_finalise(nsfb);
         return 3;
     }
+
+    if (nsfb_init_frontend(nsfb) == -1) {
+        fprintf(stderr, "Unable to initialise nsfb frontend\n");
+        nsfb_finalise(nsfb);
+        return 4;
+    }
+
+    sleep(2);
 
     nsfb_finalise(nsfb);
     return 0;

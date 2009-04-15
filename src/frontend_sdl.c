@@ -1,9 +1,345 @@
+/*
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ */
 
+#include <stdbool.h>
 #include <SDL/SDL.h>
 
 #include "libnsfb.h"
+#include "libnsfb_event.h"
 #include "nsfb.h"
 #include "frontend.h"
+
+enum nsfb_key_code_e sdl_nsfb_map[] = {
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_BACKSPACE,
+    NSFB_KEY_TAB,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_CLEAR,
+    NSFB_KEY_RETURN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_PAUSE,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_ESCAPE,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_SPACE,
+    NSFB_KEY_EXCLAIM,
+    NSFB_KEY_QUOTEDBL,
+    NSFB_KEY_HASH,
+    NSFB_KEY_DOLLAR,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_AMPERSAND,
+    NSFB_KEY_QUOTE,
+    NSFB_KEY_LEFTPAREN,
+    NSFB_KEY_RIGHTPAREN,
+    NSFB_KEY_ASTERISK,
+    NSFB_KEY_PLUS,
+    NSFB_KEY_COMMA,
+    NSFB_KEY_MINUS,
+    NSFB_KEY_PERIOD,
+    NSFB_KEY_SLASH,
+    NSFB_KEY_0,
+    NSFB_KEY_1,
+    NSFB_KEY_2,
+    NSFB_KEY_3,
+    NSFB_KEY_4,
+    NSFB_KEY_5,
+    NSFB_KEY_6,
+    NSFB_KEY_7,
+    NSFB_KEY_8,
+    NSFB_KEY_9,
+    NSFB_KEY_COLON,
+    NSFB_KEY_SEMICOLON,
+    NSFB_KEY_LESS,
+    NSFB_KEY_EQUALS,
+    NSFB_KEY_GREATER,
+    NSFB_KEY_QUESTION,
+    NSFB_KEY_AT,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_LEFTBRACKET,
+    NSFB_KEY_BACKSLASH,
+    NSFB_KEY_RIGHTBRACKET,
+    NSFB_KEY_CARET,
+    NSFB_KEY_UNDERSCORE,
+    NSFB_KEY_BACKQUOTE,
+    NSFB_KEY_a,
+    NSFB_KEY_b,
+    NSFB_KEY_c,
+    NSFB_KEY_d,
+    NSFB_KEY_e,
+    NSFB_KEY_f,
+    NSFB_KEY_g,
+    NSFB_KEY_h,
+    NSFB_KEY_i,
+    NSFB_KEY_j,
+    NSFB_KEY_k,
+    NSFB_KEY_l,
+    NSFB_KEY_m,
+    NSFB_KEY_n,
+    NSFB_KEY_o,
+    NSFB_KEY_p,
+    NSFB_KEY_q,
+    NSFB_KEY_r,
+    NSFB_KEY_s,
+    NSFB_KEY_t,
+    NSFB_KEY_u,
+    NSFB_KEY_v,
+    NSFB_KEY_w,
+    NSFB_KEY_x,
+    NSFB_KEY_y,
+    NSFB_KEY_z,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_DELETE,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_KP0,
+    NSFB_KEY_KP1,
+    NSFB_KEY_KP2,
+    NSFB_KEY_KP3,
+    NSFB_KEY_KP4,
+    NSFB_KEY_KP5,
+    NSFB_KEY_KP6,
+    NSFB_KEY_KP7,
+    NSFB_KEY_KP8,
+    NSFB_KEY_KP9,
+    NSFB_KEY_KP_PERIOD,
+    NSFB_KEY_KP_DIVIDE,
+    NSFB_KEY_KP_MULTIPLY,
+    NSFB_KEY_KP_MINUS,
+    NSFB_KEY_KP_PLUS,
+    NSFB_KEY_KP_ENTER,
+    NSFB_KEY_KP_EQUALS,
+    NSFB_KEY_UP,
+    NSFB_KEY_DOWN,
+    NSFB_KEY_RIGHT,
+    NSFB_KEY_LEFT,
+    NSFB_KEY_INSERT,
+    NSFB_KEY_HOME,
+    NSFB_KEY_END,
+    NSFB_KEY_PAGEUP,
+    NSFB_KEY_PAGEDOWN,
+    NSFB_KEY_F1,
+    NSFB_KEY_F2,
+    NSFB_KEY_F3,
+    NSFB_KEY_F4,
+    NSFB_KEY_F5,
+    NSFB_KEY_F6,
+    NSFB_KEY_F7,
+    NSFB_KEY_F8,
+    NSFB_KEY_F9,
+    NSFB_KEY_F10,
+    NSFB_KEY_F11,
+    NSFB_KEY_F12,
+    NSFB_KEY_F13,
+    NSFB_KEY_F14,
+    NSFB_KEY_F15,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_UNKNOWN,
+    NSFB_KEY_NUMLOCK,
+    NSFB_KEY_CAPSLOCK,
+    NSFB_KEY_SCROLLOCK,
+    NSFB_KEY_RSHIFT,
+    NSFB_KEY_LSHIFT,
+    NSFB_KEY_RCTRL,
+    NSFB_KEY_LCTRL,
+    NSFB_KEY_RALT,
+    NSFB_KEY_LALT,
+    NSFB_KEY_RMETA,
+    NSFB_KEY_LMETA,
+    NSFB_KEY_LSUPER,
+    NSFB_KEY_RSUPER,
+    NSFB_KEY_MODE,
+    NSFB_KEY_COMPOSE,
+    NSFB_KEY_HELP,
+    NSFB_KEY_PRINT,
+    NSFB_KEY_SYSREQ,
+    NSFB_KEY_BREAK,
+    NSFB_KEY_MENU,
+    NSFB_KEY_POWER,
+    NSFB_KEY_EURO,
+    NSFB_KEY_UNDO,
+};
+
 
 static void
 set_palette(nsfb_t *nsfb)
@@ -20,8 +356,8 @@ set_palette(nsfb_t *nsfb)
                 palette[loop].r = (rloop << 5) | (rloop << 2) | (rloop >> 1);
                 palette[loop].g = (gloop << 5) | (gloop << 2) | (gloop >> 1);
                 palette[loop].b = (bloop << 6) | (bloop << 4) | (bloop << 2) | (bloop);
-                nsfb->palette[loop] = palette[loop].r | 
-                                      palette[loop].g << 8 | 
+                nsfb->palette[loop] = palette[loop].r |
+                                      palette[loop].g << 8 |
                                       palette[loop].b << 16;
                 loop++;
             }
@@ -33,6 +369,18 @@ set_palette(nsfb_t *nsfb)
 
 }
 
+static int sdl_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
+{
+    if (nsfb->frontend_priv != NULL)
+        return -1; /* if were already initialised fail */
+
+    nsfb->width = width;
+    nsfb->height = height;
+    nsfb->bpp = bpp;
+
+    return 0;
+}
+
 static int sdl_initialise(nsfb_t *nsfb)
 {
     SDL_Surface *sdl_screen;
@@ -42,7 +390,7 @@ static int sdl_initialise(nsfb_t *nsfb)
 
     /* sanity checked depth. */
     if ((nsfb->bpp != 32) && (nsfb->bpp != 16) && (nsfb->bpp != 8))
-        nsfb->bpp = 16; 
+        nsfb->bpp = 16;
 
     /* initialise SDL library */
     if (SDL_Init(SDL_INIT_VIDEO) < 0 ) {
@@ -51,9 +399,9 @@ static int sdl_initialise(nsfb_t *nsfb)
     }
     atexit(SDL_Quit);
 
-    sdl_screen = SDL_SetVideoMode(nsfb->width, 
-                                  nsfb->height, 
-                                  nsfb->bpp, 
+    sdl_screen = SDL_SetVideoMode(nsfb->width,
+                                  nsfb->height,
+                                  nsfb->bpp,
                                   SDL_SWSURFACE);
 
     if (sdl_screen == NULL ) {
@@ -68,7 +416,7 @@ static int sdl_initialise(nsfb_t *nsfb)
 
     nsfb->ptr = sdl_screen->pixels;
     nsfb->linelen = sdl_screen->pitch;
-    
+
     SDL_ShowCursor(SDL_DISABLE);
 
     return 0;
@@ -80,26 +428,114 @@ static int sdl_finalise(nsfb_t *nsfb)
     return 0;
 }
 
-static int sdl_input(nsfb_t *nsfb)
+static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
     int got_event;
-    SDL_Event event;
+    SDL_Event sdlevent;
 
-    got_event = SDL_WaitEvent(&event);
-    if (event.type == SDL_QUIT)
-        exit(0);
-    nsfb=nsfb;
-    return 1;
+    nsfb=nsfb; /* unused */
+
+    if (timeout < 0)
+        got_event = SDL_WaitEvent(&sdlevent);
+    else
+        got_event = SDL_PollEvent(&sdlevent);
+
+    /* Do nothing if there was no event */
+    if (got_event == 0)
+        return false;
+
+    event->type = NSFB_EVENT_NONE;
+
+    switch (sdlevent.type) {
+        case SDL_KEYDOWN:
+            event->type = NSFB_EVENT_KEY_DOWN;
+            event->value.keycode = sdl_nsfb_map[sdlevent.key.keysym.sym];
+            break;
+
+        case SDL_KEYUP:
+            event->type = NSFB_EVENT_KEY_UP;
+            event->value.keycode = sdl_nsfb_map[sdlevent.key.keysym.sym];
+            break;
+
+        case SDL_MOUSEBUTTONDOWN:
+            event->type = NSFB_EVENT_KEY_DOWN;
+
+            switch (sdlevent.button.button) {
+
+            case SDL_BUTTON_LEFT:
+                event->value.keycode = NSFB_KEY_MOUSE_1;
+                break;
+
+            case SDL_BUTTON_MIDDLE:
+                event->value.keycode = NSFB_KEY_MOUSE_2;
+                break;
+
+            case SDL_BUTTON_RIGHT:
+                event->value.keycode = NSFB_KEY_MOUSE_3;
+                break;
+
+            case SDL_BUTTON_WHEELUP:
+                event->value.keycode = NSFB_KEY_MOUSE_4;
+                break;
+
+            case SDL_BUTTON_WHEELDOWN:
+                event->value.keycode = NSFB_KEY_MOUSE_5;
+                break;
+            }
+            break;
+
+        case SDL_MOUSEBUTTONUP:
+            event->type = NSFB_EVENT_KEY_UP;
+
+            switch (sdlevent.button.button) {
+
+            case SDL_BUTTON_LEFT:
+                event->value.keycode = NSFB_KEY_MOUSE_1;
+                break;
+
+            case SDL_BUTTON_MIDDLE:
+                event->value.keycode = NSFB_KEY_MOUSE_2;
+                break;
+
+            case SDL_BUTTON_RIGHT:
+                event->value.keycode = NSFB_KEY_MOUSE_3;
+                break;
+
+            case SDL_BUTTON_WHEELUP:
+                event->value.keycode = NSFB_KEY_MOUSE_4;
+                break;
+
+            case SDL_BUTTON_WHEELDOWN:
+                event->value.keycode = NSFB_KEY_MOUSE_5;
+                break;
+            }
+            break;
+
+        case SDL_MOUSEMOTION:
+            event->type = NSFB_EVENT_MOVE_ABSOLUTE;
+            event->value.vector.x = sdlevent.motion.x;
+            event->value.vector.y = sdlevent.motion.y;
+            event->value.vector.z = 0;
+            break;
+
+        case SDL_QUIT:
+            event->type = NSFB_EVENT_CONTROL;
+            event->value.controlcode = NSFB_CONTROL_QUIT;
+            break;
+
+    }
+
+    return true;
 }
 
 static int sdl_release(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
     SDL_Surface *sdl_screen = nsfb->frontend_priv;
 
-    SDL_UpdateRect(sdl_screen, 
-                   box->x0, 
-                   box->y0, 
-                   box->x1 - box->x0, 
+    SDL_UpdateRect(sdl_screen,
+                   box->x0,
+                   box->y0,
+                   box->x1 - box->x0,
                    box->y1 - box->y0);
 
     return 0;
@@ -110,6 +546,7 @@ const nsfb_frontend_rtns_t sdl_rtns = {
     .finalise = sdl_finalise,
     .input = sdl_input,
     .release = sdl_release,
+    .geometry = sdl_set_geometry,
 };
 
 NSFB_FRONTEND_DEF(sdl, NSFB_FRONTEND_SDL, &sdl_rtns)

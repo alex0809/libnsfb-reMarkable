@@ -1,10 +1,19 @@
+/*
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ */
+
+#include <stdbool.h>
 #include <stdio.h>
 #include <malloc.h>
 
 #include "libnsfb.h"
+#include "libnsfb_event.h"
 #include "nsfb.h"
 #include "frontend.h"
-
 
 /* documented in libnsfb.h */
 nsfb_t*
@@ -42,9 +51,9 @@ nsfb_init_frontend(nsfb_t *nsfb)
     return nsfb->frontend_rtns->initialise(nsfb);
 }
 
-int nsfb_input(nsfb_t *nsfb)
+bool nsfb_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
-    return nsfb->frontend_rtns->input(nsfb);
+    return nsfb->frontend_rtns->input(nsfb, event, timeout);
 }
 
 int nsfb_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
@@ -67,6 +76,8 @@ int nsfb_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
 
     if ((bpp != 32) && (bpp != 16) && (bpp != 8))
         bpp = nsfb->bpp; 
+
+    return nsfb->frontend_rtns->geometry(nsfb, width, height, bpp);
 }
 
 int nsfb_get_geometry(nsfb_t *nsfb, int *width, int *height, int *bpp) 
