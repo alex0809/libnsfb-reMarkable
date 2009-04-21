@@ -19,12 +19,12 @@ CFLAGS := -g $(CFLAGS) -std=c99 -D_BSD_SOURCE -I$(CURDIR)/include/ \
 	-I$(CURDIR)/src $(WARNFLAGS) 
 
 # TODO: probably want to retrieve SDL from pkg-config
-TESTLDFLAGS = -Wl,--whole-archive -l$(COMPONENT)$(major-version) -Wl,--no-whole-archive -lSDL
+TESTLDFLAGS = -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive -lSDL
 
 include build/makefiles/Makefile.top
 
 # Extra installation rules
-I := /include/libnsfb$(major-version)
+I := /include
 INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb.h
 INSTALL_ITEMS := $(INSTALL_ITEMS) /lib/pkgconfig:lib$(COMPONENT).pc.in
 INSTALL_ITEMS := $(INSTALL_ITEMS) /lib:$(OUTPUT)
