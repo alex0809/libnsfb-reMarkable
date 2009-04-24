@@ -1,8 +1,9 @@
 #include <stdbool.h>
 
 #include "libnsfb.h"
+#include "libnsfb_plot_util.h"
+
 #include "nsfb.h"
-#include "plot_util.h"
 
 enum {
         POINT_LEFTOF_REGION = 1,

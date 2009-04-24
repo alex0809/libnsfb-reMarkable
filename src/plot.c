@@ -15,7 +15,14 @@
  */
 bool nsfb_plot_set_clip(nsfb_t *nsfb, nsfb_bbox_t *clip)
 {
-    return nsfb->plotter_fns->clip(nsfb, clip);
+    return nsfb->plotter_fns->set_clip(nsfb, clip);
+}
+
+/** Get the previously set clipping region.
+ */
+bool nsfb_plot_get_clip(nsfb_t *nsfb, nsfb_bbox_t *clip)
+{
+    return nsfb->plotter_fns->get_clip(nsfb, clip);
 }
 
 /** Clears plotting area to a flat colour.

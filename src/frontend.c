@@ -47,7 +47,7 @@ static int frontend_defaults(nsfb_t *nsfb)
     nsfb->height = 600;
     nsfb->bpp = 16;
 
-    /* select plotters for bpp */
+    /* select default sw plotters for bpp */
     select_plotters(nsfb);
 
     return 0;

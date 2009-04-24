@@ -1,3 +1,13 @@
+/*
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ *
+ * This is the exported interface for the libnsfb graphics library. 
+ */
+
 #ifndef _LIBNSFB_H
 #define _LIBNSFB_H 1
 
@@ -23,7 +33,7 @@ enum nsfb_frontend_e {
     NSFB_FRONTEND_LINUX, /**< Linux frontend */
     NSFB_FRONTEND_VNC, /**< VNC frontend */
     NSFB_FRONTEND_ABLE, /**< ABLE frontend */
-    NSFB_FRONTEND_RAM, /**< RAM frontend */
+    NSFB_FRONTEND_RAM /**< RAM frontend */
 };
 
 /** Initialise nsfb context.
@@ -55,10 +65,6 @@ int nsfb_init_frontend(nsfb_t *nsfb);
  *         name was not available
  */
 enum nsfb_frontend_e nsfb_frontend_from_name(const char *name);
-
-/** Process input from a frontend.
- */
-bool nsfb_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout);
 
 /** Claim an area of screen to be redrawn.
  *

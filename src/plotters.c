@@ -6,9 +6,10 @@
 #include <string.h>
 
 #include "libnsfb.h"
+#include "libnsfb_plot_util.h"
+
 #include "nsfb.h"
 #include "nsfb_plot.h"
-#include "plot_util.h"
 #include "plotters.h"
 
 extern const nsfb_plotter_fns_t _nsfb_1bpp_plotters;
@@ -35,6 +36,12 @@ static bool set_clip(nsfb_t *nsfb, nsfb_bbox_t *clip)
 
         nsfb->clip = *clip;
     }
+    return true;    
+}
+
+static bool get_clip(nsfb_t *nsfb, nsfb_bbox_t *clip)
+{
+    *clip = nsfb->clip;
     return true;    
 }
 
@@ -500,7 +507,8 @@ bool select_plotters(nsfb_t *nsfb)
 
     /* set the generics */
     nsfb->plotter_fns->clg = clg;
-    nsfb->plotter_fns->clip = set_clip;
+    nsfb->plotter_fns->set_clip = set_clip;
+    nsfb->plotter_fns->get_clip = get_clip;
     nsfb->plotter_fns->polygon = polygon;
     nsfb->plotter_fns->rectangle = rectangle;
     nsfb->plotter_fns->ellipse = ellipse;

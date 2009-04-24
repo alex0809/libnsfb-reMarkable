@@ -27,7 +27,7 @@ typedef	bool (nsfb_plotfn_polygon_t)(nsfb_t *nsfb, const int *p, unsigned int n,
  */
 typedef	bool (nsfb_plotfn_fill_t)(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t c);
 
-/** Sets a clip rectangle for subsequent plots.
+/** Clipping operations.
  */
 typedef	bool (nsfb_plotfn_clip_t)(nsfb_t *nsfb, nsfb_bbox_t *clip);
 
@@ -87,7 +87,8 @@ typedef struct nsfb_plotter_fns_s {
     nsfb_plotfn_line_t *line;
     nsfb_plotfn_polygon_t *polygon;
     nsfb_plotfn_fill_t *fill;
-    nsfb_plotfn_clip_t *clip;
+    nsfb_plotfn_clip_t *get_clip;
+    nsfb_plotfn_clip_t *set_clip;
     nsfb_plotfn_ellipse_t *ellipse;
     nsfb_plotfn_ellipse_fill_t *ellipse_fill;
     nsfb_plotfn_arc_t *arc;

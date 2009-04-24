@@ -26,5 +26,9 @@ include build/makefiles/Makefile.top
 # Extra installation rules
 I := /include
 INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb.h
+INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb_plot.h
+INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb_plot_util.h
+INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb_legacy_plot.h
+INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb_event.h
 INSTALL_ITEMS := $(INSTALL_ITEMS) /lib/pkgconfig:lib$(COMPONENT).pc.in
 INSTALL_ITEMS := $(INSTALL_ITEMS) /lib:$(OUTPUT)

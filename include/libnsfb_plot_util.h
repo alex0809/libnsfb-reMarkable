@@ -1,3 +1,17 @@
+/*
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ *
+ * This is the exported interface for the libnsfb graphics library. 
+ */
+
+#ifndef _LIBNSFB_PLOT_UTIL_H
+#define _LIBNSFB_PLOT_UTIL_H 1
+
+
 /* alpha blend two pixels together */
 static inline nsfb_colour_t 
 nsfb_plot_ablend(nsfb_colour_t pixel, nsfb_colour_t scrpixel)
@@ -22,3 +36,5 @@ bool nsfb_plot_clip_ctx(nsfb_t *nsfb, nsfb_bbox_t * restrict rect);
 bool nsfb_plot_clip_line(const nsfb_bbox_t * restrict clip, nsfb_bbox_t * restrict line);
 
 bool nsfb_plot_clip_line_ctx(nsfb_t *nsfb, nsfb_bbox_t * restrict line);
+
+#endif /* _LIBNSFB_PLOT_UTIL_H */

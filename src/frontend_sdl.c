@@ -13,6 +13,7 @@
 #include "libnsfb_event.h"
 #include "nsfb.h"
 #include "frontend.h"
+#include "plotters.h"
 
 enum nsfb_key_code_e sdl_nsfb_map[] = {
     NSFB_KEY_UNKNOWN,
@@ -378,6 +379,9 @@ static int sdl_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
     nsfb->height = height;
     nsfb->bpp = bpp;
 
+    /* select default sw plotters for bpp */
+    select_plotters(nsfb);
+
     return 0;
 }
 
@@ -390,7 +394,7 @@ static int sdl_initialise(nsfb_t *nsfb)
 
     /* sanity checked depth. */
     if ((nsfb->bpp != 32) && (nsfb->bpp != 16) && (nsfb->bpp != 8))
-        nsfb->bpp = 16;
+        return -1;
 
     /* initialise SDL library */
     if (SDL_Init(SDL_INIT_VIDEO) < 0 ) {

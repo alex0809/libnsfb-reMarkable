@@ -51,7 +51,7 @@ nsfb_init_frontend(nsfb_t *nsfb)
     return nsfb->frontend_rtns->initialise(nsfb);
 }
 
-bool nsfb_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
+bool nsfb_event(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
     return nsfb->frontend_rtns->input(nsfb, event, timeout);
 }

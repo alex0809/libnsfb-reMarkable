@@ -181,3 +181,15 @@ struct nsfb_event_s {
         } vector;
     } value;
 };
+
+/** Process input events.
+ *
+ * Gather events from a frontend.
+ *
+ * @param nsfb The library handle.
+ * @param event The event structure to fill.
+ * @param timeout The number of milliseconds to wait for input, -1 is wait
+ * forever, 0 returns immediately.
+ * @return If the /a event structure is updated true else false.
+ */
+bool nsfb_event(nsfb_t *nsfb, nsfb_event_t *event, int timeout);

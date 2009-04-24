@@ -1,3 +1,16 @@
+/*
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ *
+ * This is the exported plotter interface for the libnsfb graphics library.
+ */
+
+#ifndef _LIBNSFB_PLOT_H
+#define _LIBNSFB_PLOT_H 1
+
 /** Sets a clip rectangle for subsequent plots.
  *
  * Sets a clipping area which constrains all subsequent plotting operations.
@@ -5,6 +18,10 @@
  * will be returned and the new clipping area not set.
  */
 bool nsfb_plot_set_clip(nsfb_t *nsfb, nsfb_bbox_t *clip);
+
+/** Get the previously set clipping region.
+ */
+bool nsfb_plot_get_clip(nsfb_t *nsfb, nsfb_bbox_t *clip);
 
 /** Clears plotting area to a flat colour.
  */
@@ -79,3 +96,5 @@ bool nsfb_plot_glyph8(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_t *pixel, int 
 /** Plot an 1 bit glyph.
  */
 bool nsfb_plot_glyph1(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_t *pixel, int pitch, nsfb_colour_t c);
+
+#endif /* _LIBNSFB_PLOT_H */
