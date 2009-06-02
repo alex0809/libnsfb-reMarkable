@@ -155,7 +155,7 @@ enum nsfb_key_code_e {
     NSFB_KEY_EURO		= 321,
     NSFB_KEY_UNDO		= 322,
 
-    /* mouse keys */
+    /* mouse buttons */
     NSFB_KEY_MOUSE_1 = 401,
     NSFB_KEY_MOUSE_2 = 402,
     NSFB_KEY_MOUSE_3 = 403,

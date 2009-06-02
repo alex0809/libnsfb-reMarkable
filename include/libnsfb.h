@@ -92,11 +92,17 @@ int nsfb_release(nsfb_t *nsfb, nsfb_bbox_t *box);
  */
 int nsfb_get_geometry(nsfb_t *nsfb, int *width, int *height, int *bpp);
 
-/** Alter a nsfb geometry 
+/** Alter the geometry of a framebuffer context
+ *
+ * @param nsfb The context to alter.
+ * @param width The new display width.
+ * @param height The new display height.
+ * @param bpp The new display depth. 
  */
 int nsfb_set_geometry(nsfb_t *nsfb, int width, int height, int bpp);
 
-/** Obtain the framebuffer memory base and stride. */
+/** Obtain the framebuffer memory base and stride. 
+ */
 int nsfb_get_framebuffer(nsfb_t *nsfb, uint8_t **ptr, int *linelen);
 
 #endif

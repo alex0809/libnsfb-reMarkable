@@ -17,6 +17,8 @@ typedef bool (nsfb_fendfn_input_t)(nsfb_t *nsfb, nsfb_event_t *event, int timeou
 typedef int (nsfb_fendfn_claim_t)(nsfb_t *nsfb, nsfb_bbox_t *box);
 /* frontend area release */
 typedef int (nsfb_fendfn_release_t)(nsfb_t *nsfb, nsfb_bbox_t *box);
+/* frontend cursor display */
+typedef int (nsfb_fendfn_cursor_t)(nsfb_t *nsfb, struct nsfb_cursor_s *cursor);
 
 typedef struct nsfb_frontend_rtns_s {
     nsfb_fendfn_defaults_t *defaults;
@@ -26,6 +28,7 @@ typedef struct nsfb_frontend_rtns_s {
     nsfb_fendfn_input_t *input;
     nsfb_fendfn_claim_t *claim;
     nsfb_fendfn_release_t *release;
+    nsfb_fendfn_cursor_t *cursor;
 } nsfb_frontend_rtns_t;
 
 void _nsfb_register_frontend(const enum nsfb_frontend_e type, const nsfb_frontend_rtns_t *rtns, const char *name);

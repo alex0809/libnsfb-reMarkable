@@ -322,7 +322,7 @@ glyph8(nsfb_t *nsfb,
 
 static bool 
 bitmap(nsfb_t *nsfb,
-       nsfb_bbox_t *loc,
+       const nsfb_bbox_t *loc,
        const nsfb_colour_t *pixel, 
        int bmp_width, 
        int bmp_height, 
@@ -356,8 +356,9 @@ bitmap(nsfb_t *nsfb,
         clipped.x1 = x + width;
         clipped.y1 = y + height;
 
-        if (!nsfb_plot_clip_ctx(nsfb, &clipped))
+        if (!nsfb_plot_clip_ctx(nsfb, &clipped)) {
                 return true;
+        }
 
         if (height > (clipped.y1 - clipped.y0))
                 height = (clipped.y1 - clipped.y0);
@@ -399,7 +400,29 @@ bitmap(nsfb_t *nsfb,
 	return true;
 }
 
+static bool readrect(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t *buffer)
+{
+        uint32_t *pvideo;
+        int xloop, yloop;
+        int width; 
 
+        if (!nsfb_plot_clip_ctx(nsfb, rect)) {
+                return true;
+        }
+
+        width = rect->x1 - rect->x0;
+
+        pvideo = get_xy_loc(nsfb, rect->x0, rect->y0);
+
+        for (yloop = rect->y0; yloop < rect->y1; yloop += 1) {
+                for (xloop = 0; xloop < width; xloop++) {
+                        *buffer = pixel_to_colour(*(pvideo + xloop));
+                        buffer++;
+                }
+                pvideo += (nsfb->linelen >> 2);
+        }
+        return true;
+}
 
 const nsfb_plotter_fns_t _nsfb_32bpp_plotters = {
 	.line = line,
@@ -408,6 +431,7 @@ const nsfb_plotter_fns_t _nsfb_32bpp_plotters = {
         .bitmap = bitmap,
         .glyph8 = glyph8,
         .glyph1 = glyph1,
+        .readrect = readrect,
 };
 
 /*

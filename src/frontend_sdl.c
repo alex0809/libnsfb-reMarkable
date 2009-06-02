@@ -11,9 +11,13 @@
 
 #include "libnsfb.h"
 #include "libnsfb_event.h"
+#include "libnsfb_plot_util.h"
+
 #include "nsfb.h"
 #include "frontend.h"
 #include "plotters.h"
+#include "nsfb_plot.h"
+#include "cursor.h"
 
 enum nsfb_key_code_e sdl_nsfb_map[] = {
     NSFB_KEY_UNKNOWN,
@@ -437,7 +441,7 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     int got_event;
     SDL_Event sdlevent;
 
-    nsfb=nsfb; /* unused */
+    nsfb = nsfb; /* unused */
 
     if (timeout < 0)
         got_event = SDL_WaitEvent(&sdlevent);
@@ -532,9 +536,70 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     return true;
 }
 
+static int sdl_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
+{
+    struct nsfb_cursor_s *cursor = nsfb->cursor;
+
+    if ((cursor != NULL) && 
+        (cursor->plotted == true) && 
+        (nsfb_plot_bbox_intersect(box, &cursor->loc))) {
+
+        nsfb->plotter_fns->bitmap(nsfb, 
+                                  &cursor->savloc,  
+                                  cursor->sav, 
+                                  cursor->sav_width, 
+                                  cursor->sav_height, 
+                                  cursor->sav_width, 
+                                  false);
+        cursor->plotted = false;
+    }
+    return 0;
+}
+
+static int sdl_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
+{
+    SDL_Surface *sdl_screen = nsfb->frontend_priv;
+    nsfb_bbox_t sclip;
+    nsfb_bbox_t redraw;
+
+    if ((cursor != NULL) && (cursor->plotted == true)) {
+        sclip = nsfb->clip;
+
+        nsfb_plot_add_rect(&cursor->savloc, &cursor->loc, &redraw);
+
+        nsfb->plotter_fns->set_clip(nsfb, &redraw);
+
+        nsfb->plotter_fns->bitmap(nsfb, 
+                                  &cursor->savloc,  
+                                  cursor->sav, 
+                                  cursor->sav_width, 
+                                  cursor->sav_height, 
+                                  cursor->sav_width, 
+                                  false);
+
+        nsfb_cursor_plot(nsfb, cursor);
+
+        SDL_UpdateRect(sdl_screen,
+                       redraw.x0,
+                       redraw.y0,
+                       redraw.x1 - redraw.x0,
+                       redraw.y1 - redraw.y0);
+
+
+        nsfb->clip = sclip;
+    }
+    return true;
+}
+
+
 static int sdl_release(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
     SDL_Surface *sdl_screen = nsfb->frontend_priv;
+    struct nsfb_cursor_s *cursor = nsfb->cursor;
+
+    if ((cursor != NULL) && (cursor->plotted == false)) {
+        nsfb_cursor_plot(nsfb, cursor);
+    }
 
     SDL_UpdateRect(sdl_screen,
                    box->x0,
@@ -549,7 +614,9 @@ const nsfb_frontend_rtns_t sdl_rtns = {
     .initialise = sdl_initialise,
     .finalise = sdl_finalise,
     .input = sdl_input,
+    .claim = sdl_claim,
     .release = sdl_release,
+    .cursor = sdl_cursor,
     .geometry = sdl_set_geometry,
 };
 

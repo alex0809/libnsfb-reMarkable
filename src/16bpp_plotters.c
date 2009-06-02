@@ -325,7 +325,7 @@ glyph8(nsfb_t *nsfb,
 
 static bool 
 bitmap(nsfb_t *nsfb,
-       nsfb_bbox_t *loc,
+       const nsfb_bbox_t *loc,
        const nsfb_colour_t *pixel, 
        int bmp_width, 
        int bmp_height, 

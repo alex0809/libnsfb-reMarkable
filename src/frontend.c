@@ -67,6 +67,13 @@ static int frontend_release(nsfb_t *nsfb, nsfb_bbox_t *box)
     return 0;
 }
 
+static int frontend_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
+{
+    nsfb=nsfb;
+    cursor=cursor;
+    return 0;
+}
+
 nsfb_frontend_rtns_t *nsfb_frontend_get_rtns(enum nsfb_frontend_e type)
 {
     int fend_loop;
@@ -98,6 +105,9 @@ nsfb_frontend_rtns_t *nsfb_frontend_get_rtns(enum nsfb_frontend_e type)
 
             if (rtns->release == NULL) 
                 rtns->release = frontend_release;
+
+            if (rtns->cursor == NULL) 
+                rtns->cursor = frontend_cursor;
 
             break;
         }

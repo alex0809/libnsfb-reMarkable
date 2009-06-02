@@ -86,7 +86,7 @@ bool nsfb_plot_copy(nsfb_t *nsfb, int srcx, int srcy, int width, int height, int
 
 /** Plot bitmap.
  */
-bool nsfb_plot_bitmap(nsfb_t *nsfb, nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha);
+bool nsfb_plot_bitmap(nsfb_t *nsfb, const nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha);
 
 /** Plot an 8 bit glyph.
  */
@@ -96,5 +96,8 @@ bool nsfb_plot_glyph8(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_t *pixel, int 
 /** Plot an 1 bit glyph.
  */
 bool nsfb_plot_glyph1(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_t *pixel, int pitch, nsfb_colour_t c);
+
+/* read rectangle into buffer */
+bool nsfb_plot_readrect(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t *buffer);
 
 #endif /* _LIBNSFB_PLOT_H */

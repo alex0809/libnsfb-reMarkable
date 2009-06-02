@@ -115,7 +115,7 @@ bool nsfb_plot_copy(nsfb_t *nsfb, int srcx, int srcy, int width, int height, int
     return nsfb->plotter_fns->copy(nsfb, srcx, srcy, width, height, dstx, dsty);
 }
 
-bool nsfb_plot_bitmap(nsfb_t *nsfb, nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha)
+bool nsfb_plot_bitmap(nsfb_t *nsfb, const nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha)
 {
     return nsfb->plotter_fns->bitmap(nsfb, loc,  pixel, bmp_width, bmp_height, bmp_stride, alpha);
 }
@@ -133,4 +133,10 @@ bool nsfb_plot_glyph8(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_t *pixel, int 
 bool nsfb_plot_glyph1(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_t *pixel, int pitch, nsfb_colour_t c)
 {
     return nsfb->plotter_fns->glyph1(nsfb, loc, pixel, pitch, c);
+}
+
+/* read a rectangle from screen into buffer */
+bool nsfb_plot_readrect(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t *buffer)
+{
+    return nsfb->plotter_fns->readrect(nsfb, rect, buffer);
 }

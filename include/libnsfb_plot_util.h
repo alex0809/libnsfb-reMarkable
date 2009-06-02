@@ -37,4 +37,12 @@ bool nsfb_plot_clip_line(const nsfb_bbox_t * restrict clip, nsfb_bbox_t * restri
 
 bool nsfb_plot_clip_line_ctx(nsfb_t *nsfb, nsfb_bbox_t * restrict line);
 
+/** Obtain a bounding box which is the superset of two source boxes.
+ *
+ */
+bool nsfb_plot_add_rect(const nsfb_bbox_t *box1, const nsfb_bbox_t *box2, nsfb_bbox_t *result);
+
+/** Find if two boxes intersect. */
+bool nsfb_plot_bbox_intersect(const nsfb_bbox_t *box1, const nsfb_bbox_t *box2);
+
 #endif /* _LIBNSFB_PLOT_UTIL_H */

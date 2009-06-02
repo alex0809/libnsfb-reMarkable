@@ -149,3 +149,49 @@ bool nsfb_plot_clip_line_ctx(nsfb_t *nsfb, nsfb_bbox_t * restrict line)
     return nsfb_plot_clip_line(&nsfb->clip, line);
 }
 
+/* documented in libnsfb_plot_util.h */
+bool nsfb_plot_add_rect(const nsfb_bbox_t *box1, const nsfb_bbox_t *box2, nsfb_bbox_t *result)
+{
+    /* lower x coordinate */
+    if (box1->x0 < box2->x0)
+        result->x0 = box1->x0;
+    else
+        result->x0 = box2->x0;
+
+    /* lower y coordinate */
+    if (box1->y0 < box2->y0)
+        result->y0 = box1->y0;
+    else
+        result->y0 = box2->y0;
+
+    /* upper x coordinate */
+    if (box1->x1 > box2->x1)
+        result->x1 = box1->x1;
+    else
+        result->x1 = box2->x1;
+
+    /* upper y coordinate */
+    if (box1->y1 > box2->y1)
+        result->y1 = box1->y1;
+    else
+        result->y1 = box2->y1;
+
+    return true;
+} 
+
+bool nsfb_plot_bbox_intersect(const nsfb_bbox_t *box1, const nsfb_bbox_t *box2)
+{
+    if (box2->x1 < box1->x0)
+        return false;
+
+    if (box2->y1 < box1->y0)
+        return false;
+
+    if (box2->x0 > box1->x1)
+        return false;
+
+    if (box2->y0 > box1->y1)
+        return false;
+
+    return true;
+}
