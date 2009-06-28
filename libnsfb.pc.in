@@ -6,5 +6,6 @@ includedir=${prefix}/include
 Name: libnsfb
 Description: Provides framebuffer access for netsurf.
 Version: VERSION
+Requires: sdl
 Libs: -L${libdir} -lnsfb
 Cflags: -I${includedir}
