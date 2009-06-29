@@ -426,6 +426,7 @@ static int sdl_initialise(nsfb_t *nsfb)
     nsfb->linelen = sdl_screen->pitch;
 
     SDL_ShowCursor(SDL_DISABLE);
+    SDL_EnableKeyRepeat(300, 50);
 
     return 0;
 }
@@ -540,16 +541,16 @@ static int sdl_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
     struct nsfb_cursor_s *cursor = nsfb->cursor;
 
-    if ((cursor != NULL) && 
-        (cursor->plotted == true) && 
+    if ((cursor != NULL) &&
+        (cursor->plotted == true) &&
         (nsfb_plot_bbox_intersect(box, &cursor->loc))) {
 
-        nsfb->plotter_fns->bitmap(nsfb, 
-                                  &cursor->savloc,  
-                                  cursor->sav, 
-                                  cursor->sav_width, 
-                                  cursor->sav_height, 
-                                  cursor->sav_width, 
+        nsfb->plotter_fns->bitmap(nsfb,
+                                  &cursor->savloc,
+                                  cursor->sav,
+                                  cursor->sav_width,
+                                  cursor->sav_height,
+                                  cursor->sav_width,
                                   false);
         cursor->plotted = false;
     }
@@ -569,12 +570,12 @@ static int sdl_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 
         nsfb->plotter_fns->set_clip(nsfb, &redraw);
 
-        nsfb->plotter_fns->bitmap(nsfb, 
-                                  &cursor->savloc,  
-                                  cursor->sav, 
-                                  cursor->sav_width, 
-                                  cursor->sav_height, 
-                                  cursor->sav_width, 
+        nsfb->plotter_fns->bitmap(nsfb,
+                                  &cursor->savloc,
+                                  cursor->sav,
+                                  cursor->sav_width,
+                                  cursor->sav_height,
+                                  cursor->sav_width,
                                   false);
 
         nsfb_cursor_plot(nsfb, cursor);
