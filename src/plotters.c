@@ -7,7 +7,9 @@
  *                http://www.opensource.org/licenses/mit-license.php
  */
 
-/* generic plotter functions which are not depth dependant */
+/** \file
+ * generic plotter functions which are not depth dependant (implementation).
+ */
 
 #include <stdbool.h>
 #include <limits.h>
@@ -146,7 +148,7 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 /**
  * Plot a polygon
  *
- * \param  nsfb	 frambuffer context
+ * \param  nsfb	 framebuffer context
  * \param  p	 array of polygon vertices (x1, y1, x2, y2, ... , xN, yN)
  * \param  n	 number of polygon vertices (N)
  * \param  c	 fill colour
