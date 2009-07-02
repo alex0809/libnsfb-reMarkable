@@ -1,3 +1,12 @@
+/*
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ * Copyright 2009 Michael Drake <tlsa@netsurf-browser.org>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ */
+
 /* generic plotter functions which are not depth dependant */
 
 #include <stdbool.h>
@@ -31,18 +40,18 @@ static bool set_clip(nsfb_t *nsfb, nsfb_bbox_t *clip)
     if (clip == NULL) {
         nsfb->clip = fbarea;
     } else {
-        if (!nsfb_plot_clip(&fbarea, clip)) 
+        if (!nsfb_plot_clip(&fbarea, clip))
             return false;
 
         nsfb->clip = *clip;
     }
-    return true;    
+    return true;
 }
 
 static bool get_clip(nsfb_t *nsfb, nsfb_bbox_t *clip)
 {
     *clip = nsfb->clip;
-    return true;    
+    return true;
 }
 
 static bool clg(nsfb_t *nsfb, nsfb_colour_t c)
@@ -51,15 +60,15 @@ static bool clg(nsfb_t *nsfb, nsfb_colour_t c)
 }
 
 /**
- * Find find first filled span along horizontal line at given coordinate
+ * Find first filled span along horizontal line at given coordinate
  *
- * \param  p	array of polygon vertices (x1, y1, x2, y2, ... , xN, yN)
- * \param  n	number of polygon vertex values (N * 2)
- * \param  x	current position along current scan line
- * \param  y	position of current scan line
- * \param  x0	updated to start of filled area
- * \param  x1	updated to end of filled area
- * \return true	if an intersection was found
+ * \param  p	 array of polygon vertices (x1, y1, x2, y2, ... , xN, yN)
+ * \param  n	 number of polygon vertex values (N * 2)
+ * \param  x	 current position along current scan line
+ * \param  y	 position of current scan line
+ * \param  x0	 updated to start of filled area
+ * \param  x1	 updated to end of filled area
+ * \return true	 if an intersection was found
  */
 static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 {
@@ -79,8 +88,8 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 			p_x1 = p[i + 2];	p_y1 = p[i + 3];
 		} else {
 			/* last line; 2nd endpoint is first vertex */
-			p_x0 = p[i];	p_y0 = p[i + 1];
-			p_x1 = p[0];	p_y1 = p[1];
+			p_x0 = p[i];		p_y0 = p[i + 1];
+			p_x1 = p[0];		p_y1 = p[1];
 		}
 		/* ignore horizontal lines */
 		if (p_y0 == p_y1)
@@ -137,11 +146,11 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 /**
  * Plot a polygon
  *
- * \param  p	   array of polygon vertices (x1, y1, x2, y2, ... , xN, yN)
- * \param  n	   number of polygon vertices (N)
- * \param  c	   fill colour
- * \param  linefn  function to call to plot a horizontal line
- * \return true	   if no errors
+ * \param  nsfb	 frambuffer context
+ * \param  p	 array of polygon vertices (x1, y1, x2, y2, ... , xN, yN)
+ * \param  n	 number of polygon vertices (N)
+ * \param  c	 fill colour
+ * \return true	 if no errors
  */
 static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 {
@@ -151,7 +160,7 @@ static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 	int x0, x1; /* filled span extents */
 	int y; /* current y coordinate */
 	int y_max; /* bottom of plot area */
-        nsfb_bbox_t fline;
+	nsfb_bbox_t fline;
 
 	/* find no. of vertex values */
 	int v = n * 2;
@@ -176,9 +185,9 @@ static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 	}
 
 	/* Don't try to plot it if it's outside the clip rectangle */
-	if (nsfb->clip.y1 < poly_y0 || 
+	if (nsfb->clip.y1 < poly_y0 ||
             nsfb->clip.y0 > poly_y1 ||
-            nsfb->clip.x1 < poly_x0 || 
+            nsfb->clip.x1 < poly_x0 ||
             nsfb->clip.x0 > poly_x1)
 		return true;
 
@@ -208,13 +217,14 @@ static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 			else if (x1 > nsfb->clip.x1)
 				x1 = nsfb->clip.x1;
 
-                        fline.x0 = x0;
-                        fline.y0 = y;
-                        fline.x1 = x1;
-                        fline.y1 = y;
+			fline.x0 = x0;
+			fline.y0 = y;
+			fline.x1 = x1;
+			fline.y1 = y;
 
 			/* draw this filled span on current row */
-			nsfb->plotter_fns->line(nsfb, &fline, 1, c, false, false);
+			nsfb->plotter_fns->line(nsfb, &fline, 1, c, false,
+					false);
 
 			/* don't look for more spans if already at end of clip
 			 * region or polygon */
@@ -228,8 +238,8 @@ static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 	return true;
 }
 
-static bool rectangle(nsfb_t *nsfb, nsfb_bbox_t *rect, 
-                      int line_width, nsfb_colour_t c, 
+static bool rectangle(nsfb_t *nsfb, nsfb_bbox_t *rect,
+                      int line_width, nsfb_colour_t c,
                       bool dotted, bool dashed)
 {
     nsfb_bbox_t side;
@@ -281,11 +291,11 @@ static void ellipsefill(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_
 
 #define ROUND(a) ((int)(a+0.5))
 
-static bool ellipse_midpoint(nsfb_t *nsfb, 
-                            int cx, 
-                            int cy, 
-                            int rx, 
-                            int ry, 
+static bool ellipse_midpoint(nsfb_t *nsfb,
+                            int cx,
+                            int cy,
+                            int rx,
+                            int ry,
                             nsfb_colour_t c,
                             void (ellipsefn)(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c))
 {
@@ -371,10 +381,10 @@ static void circlefill(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t
     nsfb->plotter_fns->line(nsfb, &fline, 1, c, false, false);
 }
 
-static bool circle_midpoint(nsfb_t *nsfb, 
-                            int cx, 
-                            int cy, 
-                            int r, 
+static bool circle_midpoint(nsfb_t *nsfb,
+                            int cx,
+                            int cy,
+                            int r,
                             nsfb_colour_t c,
                             void (circfn)(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c))
 {
