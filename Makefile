@@ -15,8 +15,8 @@ WARNFLAGS := -Wall -Wextra -Wundef -Wpointer-arith -Wcast-align \
 	-Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes \
 	-Wmissing-declarations -Wnested-externs -Werror -pedantic \
 	-Wno-overlength-strings # For nsglobe.c
-CFLAGS := -g $(CFLAGS) -std=c99 -D_BSD_SOURCE -I$(CURDIR)/include/ \
-	-I$(CURDIR)/src $(WARNFLAGS) 
+CFLAGS := -g -std=c99 -D_BSD_SOURCE -I$(CURDIR)/include/ \
+	-I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS)
 
 # TODO: probably want to retrieve SDL from pkg-config
 TESTLDFLAGS = -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive -lSDL
