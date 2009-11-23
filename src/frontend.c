@@ -92,22 +92,22 @@ nsfb_frontend_rtns_t *nsfb_frontend_get_rtns(enum nsfb_frontend_e type)
                 (rtns->input == NULL) ) {
                 free(rtns);
                 rtns = NULL;
+            } else {
+                /* The rest may be empty but to avoid the null check every time
+                 * provide default implementations. 
+                 */
+                if (rtns->defaults == NULL) 
+                    rtns->defaults = frontend_defaults;
+
+                if (rtns->claim == NULL) 
+                    rtns->claim = frontend_claim;
+
+                if (rtns->release == NULL) 
+                    rtns->release = frontend_release;
+
+                if (rtns->cursor == NULL) 
+                    rtns->cursor = frontend_cursor;
             }
-
-            /* The rest may be empty but to avoid the null check every time
-             * provide default implementations. 
-             */
-            if (rtns->defaults == NULL) 
-                rtns->defaults = frontend_defaults;
-
-            if (rtns->claim == NULL) 
-                rtns->claim = frontend_claim;
-
-            if (rtns->release == NULL) 
-                rtns->release = frontend_release;
-
-            if (rtns->cursor == NULL) 
-                rtns->cursor = frontend_cursor;
 
             break;
         }
