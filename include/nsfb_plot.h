@@ -67,7 +67,7 @@ typedef bool (nsfb_plotfn_bitmap_t)(nsfb_t *nsfb, const nsfb_bbox_t *loc, const 
  *
  * Copy an area of the display.
  */
-typedef bool (nsfb_plotfn_copy_t)(nsfb_t *nsfb, int srcx, int srcy, int width, int height, int dstx, int dsty);
+typedef bool (nsfb_plotfn_copy_t)(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox);
 
 
 /** Plot an 8 bit per pixel glyph.

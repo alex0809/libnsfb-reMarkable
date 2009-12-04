@@ -68,21 +68,27 @@ enum nsfb_frontend_e nsfb_frontend_from_name(const char *name);
 
 /** Claim an area of screen to be redrawn.
  *
- * Informs the nsfb library that an area of screen will be updated by the user
- * program, used for soft cursor plotting.
+ * Informs the nsfb library that an area of screen will be directly
+ * updated by the user program. This is neccisarry so the library can
+ * ensure the soft cursor plotting is correctly handled. After the
+ * update has been perfomed ::nsfb_update should be called.
  *
  * @param box The bounding box of the area which might be altered.
  */
 int nsfb_claim(nsfb_t *nsfb, nsfb_bbox_t *box);
 
-/** Release an area of screen which has been redrawn.
+/** Update an area of screen which has been redrawn.
  *
- * Informs the nsfb library that an area of screen has been updated by the user
- * program. Some frontends only update on area release.
+ * Informs the nsfb library that an area of screen has been directly
+ * updated by the user program. Some frontends only show the update on
+ * notification. The area updated does not neccisarrily have to
+ * corelate with a previous ::nsfb_claim bounding box, however if the
+ * redrawn area is larger than the claimed area pointer plotting
+ * artifacts may occour.
  *
  * @param box The bounding box of the area which has been altered.
  */
-int nsfb_release(nsfb_t *nsfb, nsfb_bbox_t *box);
+int nsfb_update(nsfb_t *nsfb, nsfb_bbox_t *box);
 
 /** Obtain the geometry of a nsfb context.
  *

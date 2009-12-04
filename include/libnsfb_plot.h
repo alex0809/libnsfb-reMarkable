@@ -82,7 +82,7 @@ bool nsfb_plot_point(nsfb_t *nsfb, int x, int y, nsfb_colour_t c);
  *
  * Copy an area of the display.
  */
-bool nsfb_plot_copy(nsfb_t *nsfb, int srcx, int srcy, int width, int height, int dstx, int dsty);
+bool nsfb_plot_copy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox);
 
 /** Plot bitmap.
  */

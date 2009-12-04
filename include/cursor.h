@@ -30,7 +30,10 @@ struct nsfb_cursor_s {
 
 };
 
-/** plot the cursor saving the image underneath. */
+/** Plot the cursor saving the image underneath. */
 bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor);
+
+/** Clear the cursor restoring the image underneath */
+bool nsfb_cursor_clear(nsfb_t *nsfb, struct nsfb_cursor_s *cursor);
 
 #endif /* CURSOR_H */

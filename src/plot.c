@@ -110,9 +110,9 @@ bool nsfb_plot_ellipse_fill(nsfb_t *nsfb, nsfb_bbox_t *ellipse, nsfb_colour_t c)
     return nsfb->plotter_fns->ellipse_fill(nsfb, ellipse, c);
 }
 
-bool nsfb_plot_copy(nsfb_t *nsfb, int srcx, int srcy, int width, int height, int dstx, int dsty)
+bool nsfb_plot_copy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 {
-    return nsfb->plotter_fns->copy(nsfb, srcx, srcy, width, height, dstx, dsty);
+	return nsfb->plotter_fns->copy(nsfb, srcbox, dstbox);
 }
 
 bool nsfb_plot_bitmap(nsfb_t *nsfb, const nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha)

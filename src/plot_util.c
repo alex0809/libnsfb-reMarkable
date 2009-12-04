@@ -150,7 +150,8 @@ bool nsfb_plot_clip_line_ctx(nsfb_t *nsfb, nsfb_bbox_t * restrict line)
 }
 
 /* documented in libnsfb_plot_util.h */
-bool nsfb_plot_add_rect(const nsfb_bbox_t *box1, const nsfb_bbox_t *box2, nsfb_bbox_t *result)
+bool 
+nsfb_plot_add_rect(const nsfb_bbox_t *box1, const nsfb_bbox_t *box2, nsfb_bbox_t *result)
 {
     /* lower x coordinate */
     if (box1->x0 < box2->x0)

@@ -10,7 +10,6 @@
 #include "nsfb_plot.h"
 #include "frontend.h"
 
-
 bool nsfb_cursor_init(nsfb_t *nsfb)
 {
     if (nsfb->cursor != NULL)
@@ -65,6 +64,10 @@ bool nsfb_cursor_loc_get(nsfb_t *nsfb, nsfb_bbox_t *loc)
 bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 {
     int sav_size;
+    nsfb_bbox_t sclip; /* saved clipping area */
+
+    nsfb->plotter_fns->get_clip(nsfb, &sclip);
+    nsfb->plotter_fns->set_clip(nsfb, NULL);
 
     cursor->savloc = cursor->loc;
 
@@ -88,7 +91,32 @@ bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
                               cursor->bmp_height, 
                               cursor->bmp_stride, 
                               true);
+
+    nsfb->plotter_fns->set_clip(nsfb, &sclip);
+
     cursor->plotted = true;
 
     return true;
+}
+
+bool nsfb_cursor_clear(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
+{
+	nsfb_bbox_t sclip; /* saved clipping area */
+
+	nsfb->plotter_fns->get_clip(nsfb, &sclip);
+	nsfb->plotter_fns->set_clip(nsfb, NULL);
+
+        nsfb->plotter_fns->bitmap(nsfb,
+                                  &cursor->savloc,
+                                  cursor->sav,
+                                  cursor->sav_width,
+                                  cursor->sav_height,
+                                  cursor->sav_width,
+                                  false);
+
+	nsfb->plotter_fns->set_clip(nsfb, &sclip);
+
+        cursor->plotted = false;
+	return true;
+
 }

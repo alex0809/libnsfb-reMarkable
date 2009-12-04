@@ -22,6 +22,7 @@
 #include "nsfb.h"
 #include "nsfb_plot.h"
 #include "plotters.h"
+#include "frontend.h"
 
 extern const nsfb_plotter_fns_t _nsfb_1bpp_plotters;
 extern const nsfb_plotter_fns_t _nsfb_8bpp_plotters;
@@ -434,17 +435,36 @@ static bool ellipse_fill(nsfb_t *nsfb, nsfb_bbox_t *ellipse, nsfb_colour_t c)
     }
 }
 
-static bool copy(nsfb_t *nsfb, int srcx, int srcy, int width, int height, int dstx, int dsty)
+/* copy an area of screen from one location to another.
+ *
+ * @warning This implementation is woefully incomplete! 
+ */
+static bool 
+copy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 {
-    uint8_t *srcptr = (nsfb->ptr +
-                       (srcy * nsfb->linelen) +
-                       ((srcx * nsfb->bpp) / 8));
-
-    uint8_t *dstptr = (nsfb->ptr +
-                       (dsty * nsfb->linelen) +
-                       ((dstx * nsfb->bpp) / 8));
-
+    int srcx = srcbox->x0;
+    int srcy = srcbox->y0; 
+    int dstx = dstbox->x0; 
+    int dsty = dstbox->y0;
+    int width = dstbox->x1 - dstbox->x0;
+    int height = dstbox->y1 - dstbox->y0; 
+    uint8_t *srcptr;
+    uint8_t *dstptr;
     int hloop;
+    nsfb_bbox_t allbox;
+
+    nsfb_plot_add_rect(srcbox, dstbox, &allbox);
+
+    nsfb->frontend_rtns->claim(nsfb, &allbox);
+
+    srcptr = (nsfb->ptr +
+              (srcy * nsfb->linelen) +
+              ((srcx * nsfb->bpp) / 8));
+
+    dstptr = (nsfb->ptr +
+              (dsty * nsfb->linelen) +
+              ((dstx * nsfb->bpp) / 8));
+
 
     if (width == nsfb->width) {
         /* take shortcut and use memmove */
@@ -466,6 +486,9 @@ static bool copy(nsfb_t *nsfb, int srcx, int srcy, int width, int height, int ds
             }
         }
     }
+
+    nsfb->frontend_rtns->update(nsfb, dstbox);
+
     return true;
 }
 

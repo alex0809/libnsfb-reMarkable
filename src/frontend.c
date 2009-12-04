@@ -60,7 +60,7 @@ static int frontend_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
     return 0;
 }
 
-static int frontend_release(nsfb_t *nsfb, nsfb_bbox_t *box)
+static int frontend_update(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
     nsfb=nsfb;
     box=box;
@@ -102,8 +102,8 @@ nsfb_frontend_rtns_t *nsfb_frontend_get_rtns(enum nsfb_frontend_e type)
                 if (rtns->claim == NULL) 
                     rtns->claim = frontend_claim;
 
-                if (rtns->release == NULL) 
-                    rtns->release = frontend_release;
+                if (rtns->update == NULL) 
+                    rtns->update = frontend_update;
 
                 if (rtns->cursor == NULL) 
                     rtns->cursor = frontend_cursor;

@@ -544,39 +544,31 @@ static int sdl_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
     if ((cursor != NULL) &&
         (cursor->plotted == true) &&
         (nsfb_plot_bbox_intersect(box, &cursor->loc))) {
-
-        nsfb->plotter_fns->bitmap(nsfb,
-                                  &cursor->savloc,
-                                  cursor->sav,
-                                  cursor->sav_width,
-                                  cursor->sav_height,
-                                  cursor->sav_width,
-                                  false);
-        cursor->plotted = false;
+        nsfb_cursor_clear(nsfb, cursor);
     }
     return 0;
 }
 
-static int sdl_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
+static int 
+sdl_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 {
     SDL_Surface *sdl_screen = nsfb->frontend_priv;
-    nsfb_bbox_t sclip;
     nsfb_bbox_t redraw;
+    nsfb_bbox_t fbarea;
 
     if ((cursor != NULL) && (cursor->plotted == true)) {
-        sclip = nsfb->clip;
 
         nsfb_plot_add_rect(&cursor->savloc, &cursor->loc, &redraw);
 
-        nsfb->plotter_fns->set_clip(nsfb, &redraw);
+        /* screen area */
+        fbarea.x0 = 0;
+        fbarea.y0 = 0;
+        fbarea.x1 = nsfb->width;
+        fbarea.y1 = nsfb->height;
 
-        nsfb->plotter_fns->bitmap(nsfb,
-                                  &cursor->savloc,
-                                  cursor->sav,
-                                  cursor->sav_width,
-                                  cursor->sav_height,
-                                  cursor->sav_width,
-                                  false);
+        nsfb_plot_clip(&fbarea, &redraw);
+
+        nsfb_cursor_clear(nsfb, cursor);
 
         nsfb_cursor_plot(nsfb, cursor);
 
@@ -587,18 +579,18 @@ static int sdl_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
                        redraw.y1 - redraw.y0);
 
 
-        nsfb->clip = sclip;
     }
     return true;
 }
 
 
-static int sdl_release(nsfb_t *nsfb, nsfb_bbox_t *box)
+static int sdl_update(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
     SDL_Surface *sdl_screen = nsfb->frontend_priv;
     struct nsfb_cursor_s *cursor = nsfb->cursor;
 
-    if ((cursor != NULL) && (cursor->plotted == false)) {
+    if ((cursor != NULL) && 
+	(cursor->plotted == false)) {
         nsfb_cursor_plot(nsfb, cursor);
     }
 
@@ -616,7 +608,7 @@ const nsfb_frontend_rtns_t sdl_rtns = {
     .finalise = sdl_finalise,
     .input = sdl_input,
     .claim = sdl_claim,
-    .release = sdl_release,
+    .update = sdl_update,
     .cursor = sdl_cursor,
     .geometry = sdl_set_geometry,
 };

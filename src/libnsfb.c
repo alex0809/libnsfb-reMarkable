@@ -61,9 +61,9 @@ int nsfb_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
     return nsfb->frontend_rtns->claim(nsfb, box);
 }
 
-int nsfb_release(nsfb_t *nsfb, nsfb_bbox_t *box)
+int nsfb_update(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
-    return nsfb->frontend_rtns->release(nsfb, box);
+    return nsfb->frontend_rtns->update(nsfb, box);
 }
 
 int nsfb_set_geometry(nsfb_t *nsfb, int width, int height, int bpp) 
