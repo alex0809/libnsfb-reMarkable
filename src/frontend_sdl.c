@@ -7,6 +7,7 @@
  */
 
 #include <stdbool.h>
+#include <stdlib.h>
 #include <SDL/SDL.h>
 
 #include "libnsfb.h"
@@ -549,7 +550,7 @@ static int sdl_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
     return 0;
 }
 
-static int 
+static int
 sdl_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 {
     SDL_Surface *sdl_screen = nsfb->frontend_priv;
@@ -589,7 +590,7 @@ static int sdl_update(nsfb_t *nsfb, nsfb_bbox_t *box)
     SDL_Surface *sdl_screen = nsfb->frontend_priv;
     struct nsfb_cursor_s *cursor = nsfb->cursor;
 
-    if ((cursor != NULL) && 
+    if ((cursor != NULL) &&
 	(cursor->plotted == false)) {
         nsfb_cursor_plot(nsfb, cursor);
     }
