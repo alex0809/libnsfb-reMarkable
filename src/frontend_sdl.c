@@ -375,6 +375,46 @@ set_palette(nsfb_t *nsfb)
 
 }
 
+static bool 
+sdlcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
+{
+    SDL_Rect src;
+    SDL_Rect dst;
+    SDL_Surface *sdl_screen = nsfb->frontend_priv;
+    nsfb_bbox_t allbox;
+    struct nsfb_cursor_s *cursor = nsfb->cursor;
+
+    nsfb_plot_add_rect(srcbox, dstbox, &allbox);
+
+    if ((cursor != NULL) &&
+        (cursor->plotted == true) &&
+        (nsfb_plot_bbox_intersect(&allbox, &cursor->loc))) {
+        nsfb_cursor_clear(nsfb, cursor);
+    }
+
+    src.x = srcbox->x0;
+    src.y = srcbox->y0;
+    src.w = srcbox->x1 - srcbox->x0;
+    src.h = srcbox->y1 - srcbox->y0;
+ 
+    dst.x = dstbox->x0;
+    dst.y = dstbox->y0;
+    dst.w = dstbox->x1 - dstbox->x0;
+    dst.h = dstbox->y1 - dstbox->y0;
+ 
+    SDL_BlitSurface(sdl_screen, &src, sdl_screen , &dst);
+
+    if ((cursor != NULL) && 
+        (cursor->plotted == false)) {
+        nsfb_cursor_plot(nsfb, cursor);
+    }
+
+    SDL_UpdateRect(sdl_screen, dst.x, dst.y, dst.w, dst.h);
+
+    return true;
+
+}
+
 static int sdl_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
 {
     if (nsfb->frontend_priv != NULL)
@@ -386,6 +426,8 @@ static int sdl_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
 
     /* select default sw plotters for bpp */
     select_plotters(nsfb);
+
+    nsfb->plotter_fns->copy = sdlcopy;
 
     return 0;
 }
