@@ -13,17 +13,21 @@
 #include "libnsfb_event.h"
 #include "nsfb.h"
 #include "frontend.h"
+#include "plotters.h"
 
 #define UNUSED(x) ((x) = (x))
 
 static int linux_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
 {
     if (nsfb->frontend_priv != NULL)
-        return -1; /* if were already initialised fail */
+        return -1; /* if we are already initialised fail */
 
     nsfb->width = width;
     nsfb->height = height;
     nsfb->bpp = bpp;
+
+    /* select default sw plotters for bpp */
+    select_plotters(nsfb);
 
     return 0;
 }

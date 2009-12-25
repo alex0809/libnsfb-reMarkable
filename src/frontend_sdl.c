@@ -386,6 +386,7 @@ sdlcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 
     nsfb_plot_add_rect(srcbox, dstbox, &allbox);
 
+    /* clear the cursor if its within the region to be altered */
     if ((cursor != NULL) &&
         (cursor->plotted == true) &&
         (nsfb_plot_bbox_intersect(&allbox, &cursor->loc))) {
