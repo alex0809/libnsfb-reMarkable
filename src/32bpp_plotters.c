@@ -51,12 +51,12 @@ static inline uint32_t colour_to_pixel(nsfb_colour_t c)
 
 #define SIGN(x)  ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
 
-static bool 
-line(nsfb_t *nsfb, 
-     nsfb_bbox_t *line, 
-     int line_width, 
-     nsfb_colour_t c, 
-     bool dotted, 
+static bool
+line(nsfb_t *nsfb,
+     nsfb_bbox_t *line,
+     int line_width,
+     nsfb_colour_t c,
+     bool dotted,
      bool dashed)
 {
         int w;
@@ -72,22 +72,20 @@ line(nsfb_t *nsfb,
 
         ent = colour_to_pixel(c);
 
+        if (!nsfb_plot_clip_ctx(nsfb, line))
+                return true; /* line outside clipping */
+
         if (line->y0 == line->y1) {
                 /* horizontal line special cased */
-                if (!nsfb_plot_clip_ctx(nsfb, line))
-                        return true; /* line outside clipping */
-
                 pvideo = get_xy_loc(nsfb, line->x0, line->y0);
 
                 w = line->x1 - line->x0;
-                while (w-- > 0) 
+                while (w-- > 0)
                         *(pvideo + w) = ent;
-                
+
                 return true;
         } else {
                 /* standard bresenham line */
-                if (!nsfb_plot_clip_line_ctx(nsfb, line))
-                        return true; /* line outside clipping */
 
                 /* the horizontal distance of the line */
                 dx = line->x1 - line->x0;
@@ -195,10 +193,10 @@ static bool point(nsfb_t *nsfb, int x, int y, nsfb_colour_t c)
         uint32_t *pvideo;
 
         /* check point lies within clipping region */
-        if ((x < nsfb->clip.x0) || 
+        if ((x < nsfb->clip.x0) ||
             (x >= nsfb->clip.x1) ||
             (y < nsfb->clip.y0) ||
-            (y >= nsfb->clip.y1)) 
+            (y >= nsfb->clip.y1))
                 return true;
 
         pvideo = get_xy_loc(nsfb, x, y);
@@ -320,12 +318,12 @@ glyph8(nsfb_t *nsfb,
 	return true;
 }
 
-static bool 
+static bool
 bitmap(nsfb_t *nsfb,
        const nsfb_bbox_t *loc,
-       const nsfb_colour_t *pixel, 
-       int bmp_width, 
-       int bmp_height, 
+       const nsfb_colour_t *pixel,
+       int bmp_width,
+       int bmp_height,
        int bmp_stride,
        bool alpha)
 {
@@ -404,7 +402,7 @@ static bool readrect(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t *buffer)
 {
         uint32_t *pvideo;
         int xloop, yloop;
-        int width; 
+        int width;
 
         if (!nsfb_plot_clip_ctx(nsfb, rect)) {
                 return true;
