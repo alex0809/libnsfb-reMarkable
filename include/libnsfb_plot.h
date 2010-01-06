@@ -78,6 +78,10 @@ bool nsfb_plot_arc(nsfb_t *nsfb, int x, int y, int radius, int angle1, int angle
  */
 bool nsfb_plot_point(nsfb_t *nsfb, int x, int y, nsfb_colour_t c);
 
+bool nsfb_plot_cubic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t c);
+
+bool nsfb_plot_quadratic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t cl);
+
 /** copy an area of screen 
  *
  * Copy an area of the display.

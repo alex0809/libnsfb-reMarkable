@@ -140,3 +140,14 @@ bool nsfb_plot_readrect(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t *buffer)
 {
     return nsfb->plotter_fns->readrect(nsfb, rect, buffer);
 }
+
+
+bool nsfb_plot_cubic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t c)
+{
+    return nsfb->plotter_fns->cubic(nsfb, curve, ctrla, ctrlb, c);
+}
+
+bool nsfb_plot_quadratic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t c)
+{
+    return nsfb->plotter_fns->quadratic(nsfb, curve, ctrla, c);
+}

@@ -435,6 +435,8 @@ static bool ellipse_fill(nsfb_t *nsfb, nsfb_bbox_t *ellipse, nsfb_colour_t c)
     }
 }
 
+
+
 /* copy an area of screen from one location to another.
  *
  * @warning This implementation is woefully incomplete! 
@@ -504,6 +506,90 @@ static bool arc(nsfb_t *nsfb, int x, int y, int radius, int angle1, int angle2, 
 	return true;
 }
 
+#define N_SEG 30
+
+static bool cubic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t cl)
+{
+    nsfb_bbox_t line;
+
+    unsigned int seg_loop;
+    double t;
+    double one_minus_t;
+    double a;
+    double b;
+    double c;
+    double d;
+    double x;
+    double y;
+
+    x = curve->x0;
+    y = curve->y0;
+
+    for (seg_loop = 1; seg_loop <= N_SEG; ++seg_loop) {
+        t = (double)seg_loop / (double)N_SEG;
+
+        one_minus_t = 1.0 - t;
+
+        a = one_minus_t * one_minus_t * one_minus_t;
+        b = 3.0 * t * one_minus_t * one_minus_t;
+        c = 3.0 * t * t * one_minus_t;
+        d = t * t * t;
+ 
+        line.x0 = x;
+        line.y0 = y;
+
+        x = a * curve->x0 + b * ctrla->x + c * ctrlb->x + d * curve->x1;
+        y = a * curve->y0 + b * ctrla->y + c * ctrlb->y + d * curve->y1;
+
+        line.x1 = x;
+        line.y1 = y;
+
+        nsfb->plotter_fns->line(nsfb, &line, 1, cl, false, false);
+    }
+
+    return true;
+}
+
+static bool quadratic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t cl)
+{
+    nsfb_bbox_t line;
+
+    unsigned int seg_loop;
+    double t;
+    double one_minus_t;
+    double a;
+    double b;
+    double c;
+    double x;
+    double y;
+
+    x = curve->x0;
+    y = curve->y0;
+
+    for (seg_loop = 1; seg_loop <= N_SEG; ++seg_loop) {
+        t = (double)seg_loop / (double)N_SEG;
+
+        one_minus_t = 1.0 - t;
+
+        a = one_minus_t * one_minus_t;
+        b = 2.0 * t * one_minus_t;
+        c = t * t;
+ 
+        line.x0 = x;
+        line.y0 = y;
+
+        x = a * curve->x0 + b * ctrla->x + c * curve->x1;
+        y = a * curve->y0 + b * ctrla->y + c * curve->y1;
+
+        line.x1 = x;
+        line.y1 = y;
+
+        nsfb->plotter_fns->line(nsfb, &line, 1, cl, false, false);
+    }
+
+    return true;
+}
+
 bool select_plotters(nsfb_t *nsfb)
 {
     const nsfb_plotter_fns_t *table;
@@ -550,6 +636,8 @@ bool select_plotters(nsfb_t *nsfb)
     nsfb->plotter_fns->ellipse_fill = ellipse_fill;
     nsfb->plotter_fns->copy = copy;
     nsfb->plotter_fns->arc = arc;
+    nsfb->plotter_fns->quadratic = quadratic;
+    nsfb->plotter_fns->cubic = cubic;
 
     /* set default clip rectangle to size of framebuffer */
     nsfb->clip.x0 = 0;

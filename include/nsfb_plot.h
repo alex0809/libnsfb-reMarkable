@@ -83,6 +83,14 @@ typedef bool (nsfb_plotfn_glyph1_t)(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_
  */
 typedef	bool (nsfb_plotfn_readrect_t)(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t *buffer);
 
+/** Plot quadratic bezier spline
+ */
+typedef bool (nsfb_plotfn_quadratic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t c);
+
+/** Plot cubic bezier spline
+ */
+typedef bool (nsfb_plotfn_cubic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t c);
+
 /** plotter function table. */
 typedef struct nsfb_plotter_fns_s {
     nsfb_plotfn_clg_t *clg;
@@ -101,6 +109,8 @@ typedef struct nsfb_plotter_fns_s {
     nsfb_plotfn_glyph8_t *glyph8;
     nsfb_plotfn_glyph1_t *glyph1;
     nsfb_plotfn_readrect_t *readrect;
+    nsfb_plotfn_quadratic_bezier_t *quadratic;
+    nsfb_plotfn_cubic_bezier_t *cubic;
 } nsfb_plotter_fns_t;
 
 
