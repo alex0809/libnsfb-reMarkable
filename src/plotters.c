@@ -17,6 +17,7 @@
 #include <string.h>
 
 #include "libnsfb.h"
+#include "libnsfb_plot.h"
 #include "libnsfb_plot_util.h"
 
 #include "nsfb.h"
@@ -155,7 +156,8 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
  * \param  c	 fill colour
  * \return true	 if no errors
  */
-static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
+static bool 
+polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 {
 	int poly_x0, poly_y0; /* Bounding box top left corner */
 	int poly_x1, poly_y1; /* Bounding box bottom right corner */
@@ -164,6 +166,7 @@ static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 	int y; /* current y coordinate */
 	int y_max; /* bottom of plot area */
 	nsfb_bbox_t fline;
+	nsfb_plot_pen_t pen;
 
 	/* find no. of vertex values */
 	int v = n * 2;
@@ -171,6 +174,8 @@ static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 	/* Can't plot polygons with 2 or fewer vertices */
 	if (n <= 2)
 		return true;
+
+	pen.stroke_colour = c;
 
 	/* Find polygon bounding box */
 	poly_x0 = poly_x1 = *p;
@@ -226,8 +231,7 @@ static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 			fline.y1 = y;
 
 			/* draw this filled span on current row */
-			nsfb->plotter_fns->line(nsfb, &fline, 1, c, false,
-					false);
+			nsfb->plotter_fns->line(nsfb, 1, &fline, &pen);
 
 			/* don't look for more spans if already at end of clip
 			 * region or polygon */
@@ -241,35 +245,38 @@ static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 	return true;
 }
 
-static bool rectangle(nsfb_t *nsfb, nsfb_bbox_t *rect,
-                      int line_width, nsfb_colour_t c,
-                      bool dotted, bool dashed)
+static bool 
+rectangle(nsfb_t *nsfb, nsfb_bbox_t *rect,
+	  int line_width, nsfb_colour_t c,
+	  bool dotted, bool dashed)
 {
-    nsfb_bbox_t side;
+    nsfb_bbox_t side[4];
+    nsfb_plot_pen_t pen;
 
-    side = *rect;
-    side.y1 = side.y0;
+    pen.stroke_colour = c;
+    pen.stroke_width = line_width;
+    if (dotted || dashed) {
+	    pen.stroke_type = NFSB_PLOT_OPTYPE_PATTERN;
+    } else {
+	    pen.stroke_type = NFSB_PLOT_OPTYPE_SOLID;
+    }
 
-    nsfb->plotter_fns->line(nsfb, &side, line_width, c, dotted, dashed);
+    side[0] = *rect;
+    side[1] = *rect;
+    side[2] = *rect;
+    side[3] = *rect;
 
-    side = *rect;
-    side.y0 = side.y1;
+    side[0].y1 = side[0].y0;
+    side[1].y0 = side[1].y1;
+    side[2].x1 = side[2].x0;
+    side[3].x0 = side[3].x1;
 
-    nsfb->plotter_fns->line(nsfb, &side, line_width, c, dotted, dashed);
-
-    side = *rect;
-    side.x1 = side.x0;
-
-    nsfb->plotter_fns->line(nsfb, &side, line_width, c, dotted, dashed);
-
-    side = *rect;
-    side.x0 = side.x1;
-
-    return nsfb->plotter_fns->line(nsfb, &side, line_width, c, dotted, dashed);
+    return nsfb->plotter_fns->line(nsfb, 4, side, &pen);
 }
 
 /* plotter routine for ellipse points */
-static void ellipsepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
+static void 
+ellipsepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
 {
     nsfb->plotter_fns->point(nsfb, cx + x, cy + y, c);
     nsfb->plotter_fns->point(nsfb, cx - x, cy + y, c);
@@ -277,30 +284,33 @@ static void ellipsepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colou
     nsfb->plotter_fns->point(nsfb, cx - x, cy - y, c);
 }
 
-static void ellipsefill(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
+static void 
+ellipsefill(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
 {
-    nsfb_bbox_t fline;
-    fline.x0 = cx - x;
-    fline.x1 = cx + x;
-    fline.y0 = fline.y1 = cy + y;
-    nsfb->plotter_fns->line(nsfb, &fline, 1, c, false, false);
+    nsfb_bbox_t fline[2];
+    nsfb_plot_pen_t pen;
 
-    fline.x0 = cx - x;
-    fline.x1 = cx + x;
-    fline.y0 = fline.y1 = cy - y;
-    nsfb->plotter_fns->line(nsfb, &fline, 1, c, false, false);
+    pen.stroke_colour = c;
+
+    fline[0].x0 = fline[1].x0 = cx - x;
+    fline[0].x1 = fline[1].x1 = cx + x;
+    fline[0].y0 = fline[0].y1 = cy + y;
+    fline[1].y0 = fline[1].y1 = cy - y;
+
+    nsfb->plotter_fns->line(nsfb, 2, fline, &pen);
 
 }
 
 #define ROUND(a) ((int)(a+0.5))
 
-static bool ellipse_midpoint(nsfb_t *nsfb,
-                            int cx,
-                            int cy,
-                            int rx,
-                            int ry,
-                            nsfb_colour_t c,
-                            void (ellipsefn)(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c))
+static bool 
+ellipse_midpoint(nsfb_t *nsfb,
+		 int cx,
+		 int cy,
+		 int rx,
+		 int ry,
+		 nsfb_colour_t c,
+		 void (ellipsefn)(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c))
 {
     int rx2 = rx * rx;
     int ry2 = ry * ry;
@@ -348,7 +358,8 @@ static bool ellipse_midpoint(nsfb_t *nsfb,
 
 
 /* plotter routine for 8way circle symetry */
-static void circlepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
+static void 
+circlepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
 {
     nsfb->plotter_fns->point(nsfb, cx + x, cy + y, c);
     nsfb->plotter_fns->point(nsfb, cx - x, cy + y, c);
@@ -360,28 +371,25 @@ static void circlepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour
     nsfb->plotter_fns->point(nsfb, cx - y, cy - x, c);
 }
 
-static void circlefill(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
+static void 
+circlefill(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
 {
-    nsfb_bbox_t fline;
-    fline.x0 = cx - x;
-    fline.x1 = cx + x;
-    fline.y0 = fline.y1 = cy + y;
-    nsfb->plotter_fns->line(nsfb, &fline, 1, c, false, false);
+    nsfb_bbox_t fline[4];
+    nsfb_plot_pen_t pen;
 
-    fline.x0 = cx - x;
-    fline.x1 = cx + x;
-    fline.y0 = fline.y1 = cy - y;
-    nsfb->plotter_fns->line(nsfb, &fline, 1, c, false, false);
+    pen.stroke_colour = c;
 
-    fline.x0 = cx - y;
-    fline.x1 = cx + y;
-    fline.y0 = fline.y1 = cy + x;
-    nsfb->plotter_fns->line(nsfb, &fline, 1, c, false, false);
+    fline[0].x0 = fline[1].x0 = cx - x;
+    fline[0].x1 = fline[1].x1 = cx + x;
+    fline[0].y0 = fline[0].y1 = cy + y;
+    fline[1].y0 = fline[1].y1 = cy - y;
 
-    fline.x0 = cx - y;
-    fline.x1 = cx + y;
-    fline.y0 = fline.y1 = cy - x;
-    nsfb->plotter_fns->line(nsfb, &fline, 1, c, false, false);
+    fline[2].x0 = fline[3].x0 = cx - y;
+    fline[2].x1 = fline[3].x1 = cx + y;
+    fline[2].y0 = fline[2].y1 = cy + x;
+    fline[3].y0 = fline[3].y1 = cy - x;
+
+    nsfb->plotter_fns->line(nsfb, 4, fline, &pen);
 }
 
 static bool circle_midpoint(nsfb_t *nsfb,
@@ -508,9 +516,11 @@ static bool arc(nsfb_t *nsfb, int x, int y, int radius, int angle1, int angle2, 
 
 #define N_SEG 30
 
-static bool cubic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t cl)
+static bool 
+cubic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t cl)
 {
     nsfb_bbox_t line;
+    nsfb_plot_pen_t pen;
 
     unsigned int seg_loop;
     double t;
@@ -521,6 +531,8 @@ static bool cubic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_po
     double d;
     double x;
     double y;
+
+    pen.stroke_colour = cl;
 
     x = curve->x0;
     y = curve->y0;
@@ -544,7 +556,7 @@ static bool cubic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_po
         line.x1 = x;
         line.y1 = y;
 
-        nsfb->plotter_fns->line(nsfb, &line, 1, cl, false, false);
+        nsfb->plotter_fns->line(nsfb, 1, &line, &pen);
     }
 
     return true;
@@ -553,6 +565,7 @@ static bool cubic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_po
 static bool quadratic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t cl)
 {
     nsfb_bbox_t line;
+    nsfb_plot_pen_t pen;
 
     unsigned int seg_loop;
     double t;
@@ -562,6 +575,8 @@ static bool quadratic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsf
     double c;
     double x;
     double y;
+
+    pen.stroke_colour = cl;
 
     x = curve->x0;
     y = curve->y0;
@@ -584,7 +599,7 @@ static bool quadratic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsf
         line.x1 = x;
         line.y1 = y;
 
-        nsfb->plotter_fns->line(nsfb, &line, 1, cl, false, false);
+        nsfb->plotter_fns->line(nsfb, 1, &line, &pen);
     }
 
     return true;
@@ -592,7 +607,7 @@ static bool quadratic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsf
 
 bool select_plotters(nsfb_t *nsfb)
 {
-    const nsfb_plotter_fns_t *table;
+    const nsfb_plotter_fns_t *table = NULL;
 
     switch (nsfb->bpp) {
         /*    case 1:

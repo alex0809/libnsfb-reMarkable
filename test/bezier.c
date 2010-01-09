@@ -22,6 +22,7 @@ int main(int argc, char **argv)
     nsfb_point_t ctrla;
     nsfb_point_t ctrlb;
     int loop;
+    nsfb_plot_pen_t pen;
 
     UNUSED(argc);
     UNUSED(argv);
@@ -64,6 +65,7 @@ int main(int argc, char **argv)
     nsfb_plot_cubic_bezier(nsfb, &box2, &ctrla, &ctrlb, 0xff000000);
     }
 
+    pen.stroke_colour = 0xff000000;
 
     box2.x0=400;
     box2.y0=100;
@@ -71,7 +73,7 @@ int main(int argc, char **argv)
     box2.x1=600;
     box2.y1=400;
 
-    nsfb_plot_line(nsfb, &box2, 1, 0xff000000, false, false);
+    nsfb_plot_line(nsfb, &box2, &pen);
 
     box2.x0=800;
     box2.y0=100;
@@ -79,7 +81,7 @@ int main(int argc, char **argv)
     box2.x1=600;
     box2.y1=400;
 
-    nsfb_plot_line(nsfb, &box2, 1, 0xff000000, false, false);
+    nsfb_plot_line(nsfb, &box2, &pen);
 
     box2.x0=400;
     box2.y0=100;

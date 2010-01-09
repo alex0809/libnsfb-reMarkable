@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 #include "libnsfb.h"
+#include "libnsfb_plot.h"
 #include "libnsfb_event.h"
 #include "nsfb.h"
 #include "frontend.h"

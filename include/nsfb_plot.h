@@ -10,10 +10,9 @@ typedef bool (nsfb_plotfn_clg_t)(nsfb_t *nsfb, nsfb_colour_t c);
  */
 typedef	bool (nsfb_plotfn_rectangle_t)(nsfb_t *nsfb, nsfb_bbox_t *rect, int line_width, nsfb_colour_t c, bool dotted, bool dashed);
 
-/** Plots a line from (x0,y0) to (x1,y1). Coordinates are at
- *		  centre of line width/thickness.
+/** Plots a line using a given pen.
  */
-typedef bool (nsfb_plotfn_line_t)(nsfb_t *nsfb, nsfb_bbox_t *line, int line_width, nsfb_colour_t c, bool dotted, bool dashed);
+typedef bool (nsfb_plotfn_line_t)(nsfb_t *nsfb, int linec, nsfb_bbox_t *line, nsfb_plot_pen_t *pen);
 
 /** Plots a filled polygon with straight lines between points.
  *		  The lines around the edge of the ploygon are not plotted. The

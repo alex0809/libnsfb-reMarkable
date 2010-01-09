@@ -11,6 +11,7 @@
 
 #include "libnsfb.h"
 #include "libnsfb_event.h"
+#include "libnsfb_plot.h"
 #include "nsfb.h"
 #include "frontend.h"
 

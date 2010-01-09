@@ -78,6 +78,7 @@ int main(int argc, char **argv)
     int fbstride;
     int p[] = { 300,300,  350,350, 400,300, 450,250, 400,200};
     int loop;
+    nsfb_plot_pen_t pen;
 
     UNUSED(argc);
     UNUSED(argv);
@@ -109,36 +110,40 @@ int main(int argc, char **argv)
         nsfb_plot_clg(nsfb, 0xffffff00 | loop);
     }
 
-    /* draw radial lines from the origin */
+    /* draw black radial lines from the origin */
+    pen.stroke_colour = 0xff000000;
     for (loop = 0; loop < box.x1; loop += 20) {
         box2 = box;
         box2.x1 = loop;
-        nsfb_plot_line(nsfb, &box2, 1, 0xff000000, false, false);
+        nsfb_plot_line(nsfb, &box2, &pen);
     }
     
-    /* draw radial lines from the bottom right */
+    /* draw blue radial lines from the bottom right */
+    pen.stroke_colour = 0xffff0000;
     for (loop = 0; loop < box.x1; loop += 20) {
         box2 = box;
         box2.x0 = loop;
-        nsfb_plot_line(nsfb, &box2, 1, 0xffff0000, false, false);
+        nsfb_plot_line(nsfb, &box2, &pen);
     }
     
-    /* draw radial lines from the bottom left */
+    /* draw green radial lines from the bottom left */
+    pen.stroke_colour = 0xff00ff00;
     for (loop = 0; loop < box.x1; loop += 20) {
         box2.x0 = box.x0;
         box2.x1 = loop;
         box2.y0 = box.y1;
         box2.y1 = box.y0;
-        nsfb_plot_line(nsfb, &box2, 1, 0xff00ff00, false, false);
+        nsfb_plot_line(nsfb, &box2, &pen);
     }
 
-    /* draw radial lines from the top right */
+    /* draw red radial lines from the top right */
+    pen.stroke_colour = 0xff0000ff;
     for (loop = 0; loop < box.x1; loop += 20) {
         box2.x0 = box.x1;
         box2.x1 = loop;
         box2.y0 = box.y0;
         box2.y1 = box.y1;
-        nsfb_plot_line(nsfb, &box2, 1, 0xff0000ff, false, false);
+        nsfb_plot_line(nsfb, &box2, &pen);
     }
 
     /* draw an unclipped rectangle */

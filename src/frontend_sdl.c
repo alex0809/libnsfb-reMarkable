@@ -12,6 +12,7 @@
 
 #include "libnsfb.h"
 #include "libnsfb_event.h"
+#include "libnsfb_plot.h"
 #include "libnsfb_plot_util.h"
 
 #include "nsfb.h"

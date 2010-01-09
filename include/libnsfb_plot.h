@@ -11,6 +11,40 @@
 #ifndef _LIBNSFB_PLOT_H
 #define _LIBNSFB_PLOT_H 1
 
+/** representation of a colour.
+ *
+ * The colour value comprises of four components arranged in the order ABGR:
+ * bits 24-31 are the alpha value and represent the opacity. 0 is
+ *   transparent i.e. there would be no change in the target surface if
+ *   this colour were to be used and 0xFF is opaque.
+ *
+ * bits 16-23 are the Blue component of the colour.
+ *
+ * bits 8-15 are the Green component of the colour.
+ *
+ * bits 0-7 are the Red component of the colour.
+ */
+typedef uint32_t nsfb_colour_t;
+
+/**
+ * Type of plot operation
+ */
+typedef enum nsfb_plot_optype_e {
+	NFSB_PLOT_OPTYPE_NONE = 0, /**< No operation */
+	NFSB_PLOT_OPTYPE_SOLID, /**< Solid colour */
+	NFSB_PLOT_OPTYPE_PATTERN, /**< Pattern plot */
+} nsfb_plot_optype_t;
+
+/** pen colour and raster operation for plotting primatives. */
+typedef struct nsfb_plot_pen_s {
+	nsfb_plot_optype_t stroke_type; /**< Stroke plot type */
+	int stroke_width; /**< Width of stroke, in pixels */
+	nsfb_colour_t stroke_colour; /**< Colour of stroke */
+	uint32_t stroke_pattern;
+	nsfb_plot_optype_t fill_type; /**< Fill plot type */
+	nsfb_colour_t fill_colour; /**< Colour of fill */
+} nsfb_plot_pen_t;
+
 /** Sets a clip rectangle for subsequent plots.
  *
  * Sets a clipping area which constrains all subsequent plotting operations.
@@ -45,7 +79,13 @@ bool nsfb_plot_rectangle_fill(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t c);
  * Draw a line from (x0,y0) to (x1,y1). Coordinates are at centre of line
  * width/thickness.
  */
-bool nsfb_plot_line(nsfb_t *nsfb, nsfb_bbox_t *line, int line_width, nsfb_colour_t c, bool dotted, bool dashed);
+bool nsfb_plot_line(nsfb_t *nsfb, nsfb_bbox_t *line, nsfb_plot_pen_t *pen);
+
+/** Plots a number of lines.
+ *
+ * Draw a series of lines.
+ */
+bool nsfb_plot_lines(nsfb_t *nsfb, int linec, nsfb_bbox_t *line, nsfb_plot_pen_t *pen);
 
 /** Plots a filled polygon. 
  *

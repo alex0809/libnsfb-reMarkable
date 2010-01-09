@@ -1,6 +1,7 @@
 /* libnsfb framebuffer frontend support */
 
 #include "libnsfb.h" 
+#include "libnsfb_plot.h"
 #include "nsfb.h"
 
 /* frontend default options */

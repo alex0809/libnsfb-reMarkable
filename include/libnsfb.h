@@ -15,21 +15,6 @@
 
 typedef struct nsfb_cursor_s nsfb_cursor_t;
 typedef struct nsfb_s nsfb_t;
-
-/** representation of a colour.
- *
- * The colour value comprises of four components arranged in the order ABGR:
- * bits 24-31 are the alpha value and represent the opacity. 0 is
- *   transparent i.e. there would be no change in the target surface if
- *   this colour were to be used and 0xFF is opaque.
- *
- * bits 16-23 are the Blue component of the colour.
- *
- * bits 8-15 are the Green component of the colour.
- *
- * bits 0-7 are the Red component of the colour.
- */
-typedef uint32_t nsfb_colour_t;
 typedef struct nsfb_event_s nsfb_event_t;
 
 /** co-ordinate for plotting operations */

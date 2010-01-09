@@ -11,6 +11,7 @@
 #include <stdlib.h>
 
 #include "libnsfb.h"
+#include "libnsfb_plot.h"
 #include "libnsfb_plot_util.h"
 
 #include "nsfb.h"
@@ -39,12 +40,7 @@ static inline uint16_t colour_to_pixel(nsfb_colour_t c)
 
 
 static bool 
-line(nsfb_t *nsfb, 
-     nsfb_bbox_t *line, 
-     int line_width, 
-     nsfb_colour_t c, 
-     bool dotted, 
-     bool dashed)
+line(nsfb_t *nsfb, int linec, nsfb_bbox_t *line, nsfb_plot_pen_t *pen)
 {
         int w;
         uint16_t ent;
@@ -53,76 +49,81 @@ line(nsfb_t *nsfb,
         int dx, dy, sdy;
         int dxabs, dyabs;
 
-        line_width = line_width;
-        dotted = dotted;
-        dashed = dashed;
+        ent = colour_to_pixel(pen->stroke_colour);
 
-        ent = colour_to_pixel(c);
+        for (;linec > 0; linec--) {
 
-        if (line->y0 == line->y1) {
-                /* horizontal line special cased */
-                if (!nsfb_plot_clip_ctx(nsfb, line))
-                        return true; /* line outside clipping */
+                if (line->y0 == line->y1) {
+                        /* horizontal line special cased */
 
-                pvideo = get_xy_loc(nsfb, line->x0, line->y0);
+                        if (!nsfb_plot_clip_ctx(nsfb, line)) {
+                                /* line outside clipping */
+                                line++;
+                                continue;
+                        }
 
-                w = line->x1 - line->x0;
-                while (w-- > 0) 
-                        *(pvideo + w) = ent;
-                
-                return true;
-        } else {
-                /* standard bresenham line */
-                if (!nsfb_plot_clip_line_ctx(nsfb, line))
-                        return true; /* line outside clipping */
-
-                /* the horizontal distance of the line */
-                dx = line->x1 - line->x0;
-                dxabs = abs (dx);
-
-                /* the vertical distance of the line */
-                dy = line->y1 - line->y0;
-                dyabs = abs (dy);
-
-                sdy = dx ? SIGN(dy) * SIGN(dx) : SIGN(dy);
-
-                if (dx >= 0)
                         pvideo = get_xy_loc(nsfb, line->x0, line->y0);
-                else
-                        pvideo = get_xy_loc(nsfb, line->x1, line->y1);
 
-                x = dyabs >> 1;
-                y = dxabs >> 1;
-
-                if (dxabs >= dyabs) {
-                        /* the line is more horizontal than vertical */
-                        for (i = 0; i < dxabs; i++) {
-                                *pvideo = ent;
-
-                                pvideo++;
-                                y += dyabs;
-                                if (y >= dxabs) {
-                                        y -= dxabs;
-                                        pvideo += sdy * (nsfb->linelen>>1);
-                                }
-                        }
+                        w = line->x1 - line->x0;
+                        while (w-- > 0) 
+                                *(pvideo + w) = ent;
+                
                 } else {
-                        /* the line is more vertical than horizontal */
-                        for (i = 0; i < dyabs; i++) {
-                                *pvideo = ent;
-                                pvideo += sdy * (nsfb->linelen >> 1);
+                        /* standard bresenham line */
+                        if (!nsfb_plot_clip_line_ctx(nsfb, line)) {
+                                /* line outside clipping */
+                                line++;
+                                continue;
+                        }
 
-                                x += dxabs;
-                                if (x >= dyabs) {
-                                        x -= dyabs;
+                        /* the horizontal distance of the line */
+                        dx = line->x1 - line->x0;
+                        dxabs = abs (dx);
+
+                        /* the vertical distance of the line */
+                        dy = line->y1 - line->y0;
+                        dyabs = abs (dy);
+
+                        sdy = dx ? SIGN(dy) * SIGN(dx) : SIGN(dy);
+
+                        if (dx >= 0)
+                                pvideo = get_xy_loc(nsfb, line->x0, line->y0);
+                        else
+                                pvideo = get_xy_loc(nsfb, line->x1, line->y1);
+
+                        x = dyabs >> 1;
+                        y = dxabs >> 1;
+
+                        if (dxabs >= dyabs) {
+                                /* the line is more horizontal than vertical */
+                                for (i = 0; i < dxabs; i++) {
+                                        *pvideo = ent;
+
                                         pvideo++;
+                                        y += dyabs;
+                                        if (y >= dxabs) {
+                                                y -= dxabs;
+                                                pvideo += sdy * (nsfb->linelen>>1);
+                                        }
+                                }
+                        } else {
+                                /* the line is more vertical than horizontal */
+                                for (i = 0; i < dyabs; i++) {
+                                        *pvideo = ent;
+                                        pvideo += sdy * (nsfb->linelen >> 1);
+
+                                        x += dxabs;
+                                        if (x >= dyabs) {
+                                                x -= dyabs;
+                                                pvideo++;
+                                        }
                                 }
                         }
+
                 }
-
+                line++;
         }
-
-	return true;
+        return true;
 }
 
 
@@ -189,7 +190,7 @@ static bool fill(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t c)
                         pvid16 += llen;
                 }
         }
-	return true;
+        return true;
 }
 
 
@@ -213,7 +214,7 @@ static bool point(nsfb_t *nsfb, int x, int y, nsfb_colour_t c)
 
                 *pvideo = colour_to_pixel(c);
         }
-	return true;
+        return true;
 }
 
 static bool
@@ -225,7 +226,7 @@ glyph1(nsfb_t *nsfb,
 {
         uint16_t *pvideo;
         int xloop, yloop;
-	int xoff, yoff; /* x and y offset into image */
+        int xoff, yoff; /* x and y offset into image */
         int x = loc->x0;
         int y = loc->y0;
         int width = loc->x1 - loc->x0;
@@ -243,8 +244,8 @@ glyph1(nsfb_t *nsfb,
         if (width > (loc->x1 - loc->x0))
                 width = (loc->x1 - loc->x0);
 
-	xoff = loc->x0 - x;
-	yoff = loc->y0 - y;
+        xoff = loc->x0 - x;
+        yoff = loc->y0 - y;
 
         pvideo = get_xy_loc(nsfb, loc->x0, loc->y0);
 
@@ -268,7 +269,7 @@ glyph1(nsfb_t *nsfb,
                 pvideo += (nsfb->linelen >> 1);
         }
 
-	return true;
+        return true;
 }
 
 static bool
@@ -281,7 +282,7 @@ glyph8(nsfb_t *nsfb,
         uint16_t *pvideo;
         nsfb_colour_t abpixel; /* alphablended pixel */
         int xloop, yloop;
-	int xoff, yoff; /* x and y offset into image */
+        int xoff, yoff; /* x and y offset into image */
         int x = loc->x0;
         int y = loc->y0;
         int width = loc->x1 - loc->x0;
@@ -297,8 +298,8 @@ glyph8(nsfb_t *nsfb,
         if (width > (loc->x1 - loc->x0))
                 width = (loc->x1 - loc->x0);
 
-	xoff = loc->x0 - x;
-	yoff = loc->y0 - y;
+        xoff = loc->x0 - x;
+        yoff = loc->y0 - y;
 
         pvideo = get_xy_loc(nsfb, loc->x0, loc->y0);
 
@@ -320,7 +321,7 @@ glyph8(nsfb_t *nsfb,
                 pvideo += (nsfb->linelen >> 1);
         }
 
-	return true;
+        return true;
 }
 
 static bool 
@@ -335,7 +336,7 @@ bitmap(nsfb_t *nsfb,
         uint16_t *pvideo;
         nsfb_colour_t abpixel; /* alphablended pixel */
         int xloop, yloop;
-	int xoff, yoff; /* x and y offset into image */
+        int xoff, yoff; /* x and y offset into image */
         int x = loc->x0;
         int y = loc->y0;
         int width = loc->x1 - loc->x0;
@@ -370,9 +371,9 @@ bitmap(nsfb_t *nsfb,
                 width = (clipped.x1 - clipped.x0);
 
 
-	xoff = clipped.x0 - x;
-	yoff = (clipped.y0 - y) * bmp_width;
-	height = height * bmp_width + yoff;
+        xoff = clipped.x0 - x;
+        yoff = (clipped.y0 - y) * bmp_width;
+        height = height * bmp_width + yoff;
 
         /* plot the image */
         pvideo = get_xy_loc(nsfb, clipped.x0, clipped.y0);
@@ -402,15 +403,15 @@ bitmap(nsfb_t *nsfb,
                 }
         }
 
-	return true;
+        return true;
 }
 
 
 
 
 const nsfb_plotter_fns_t _nsfb_16bpp_plotters = {
-	.line = line,
-	.fill = fill,
+        .line = line,
+        .fill = fill,
         .point = point,
         .bitmap = bitmap,
         .glyph8 = glyph8,

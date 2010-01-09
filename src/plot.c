@@ -63,9 +63,19 @@ bool nsfb_plot_rectangle_fill(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t c)
  * Draw a line from (x0,y0) to (x1,y1). Coordinates are at centre of line
  * width/thickness.
  */
-bool nsfb_plot_line(nsfb_t *nsfb, nsfb_bbox_t *line, int line_width, nsfb_colour_t c, bool dotted, bool dashed)
+bool nsfb_plot_line(nsfb_t *nsfb, nsfb_bbox_t *line, nsfb_plot_pen_t *pen)
 {
-    return nsfb->plotter_fns->line(nsfb, line, line_width, c, dotted, dashed);
+	return nsfb->plotter_fns->line(nsfb, 1, line, pen);
+}
+
+/** Plots more than one line.
+ *
+ * Draw a line from (x0,y0) to (x1,y1). Coordinates are at centre of line
+ * width/thickness.
+ */
+bool nsfb_plot_lines(nsfb_t *nsfb, int linec, nsfb_bbox_t *line, nsfb_plot_pen_t *pen)
+{
+	return nsfb->plotter_fns->line(nsfb, linec, line, pen);
 }
 
 /** Plots a filled polygon. 
