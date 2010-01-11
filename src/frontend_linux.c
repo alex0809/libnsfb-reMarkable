@@ -12,9 +12,11 @@
 #include "libnsfb.h"
 #include "libnsfb_event.h"
 #include "libnsfb_plot.h"
+
 #include "nsfb.h"
+#include "plot.h"
 #include "frontend.h"
-#include "plotters.h"
+
 
 #define UNUSED(x) ((x) = (x))
 

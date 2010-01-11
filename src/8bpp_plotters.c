@@ -17,8 +17,7 @@
 #include "libnsfb_plot_util.h"
 
 #include "nsfb.h"
-#include "nsfb_plot.h"
-#include "plotters.h"
+#include "plot.h"
 
 static inline uint8_t *get_xy_loc(nsfb_t *nsfb, int x, int y)
 {

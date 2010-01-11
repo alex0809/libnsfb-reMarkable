@@ -90,6 +90,9 @@ typedef bool (nsfb_plotfn_quadratic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, 
  */
 typedef bool (nsfb_plotfn_cubic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t c);
 
+/** plot path */
+typedef bool (nsfb_plotfn_path_t)(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen);
+
 /** plotter function table. */
 typedef struct nsfb_plotter_fns_s {
     nsfb_plotfn_clg_t *clg;
@@ -110,6 +113,9 @@ typedef struct nsfb_plotter_fns_s {
     nsfb_plotfn_readrect_t *readrect;
     nsfb_plotfn_quadratic_bezier_t *quadratic;
     nsfb_plotfn_cubic_bezier_t *cubic;
+    nsfb_plotfn_path_t *path;
 } nsfb_plotter_fns_t;
 
+
+bool select_plotters(nsfb_t *nsfb);
 

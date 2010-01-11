@@ -45,6 +45,20 @@ typedef struct nsfb_plot_pen_s {
 	nsfb_colour_t fill_colour; /**< Colour of fill */
 } nsfb_plot_pen_t;
 
+/** path operation type. */
+typedef enum nsfb_plot_pathop_type_e {
+	NFSB_PLOT_PATHOP_MOVE,
+	NFSB_PLOT_PATHOP_LINE,
+	NFSB_PLOT_PATHOP_QUAD,
+	NFSB_PLOT_PATHOP_CUBIC,
+} nsfb_plot_pathop_type_t;
+
+/** path element */
+typedef struct nsfb_plot_pathop_s {
+	nsfb_plot_pathop_type_t operation;
+	nsfb_point_t point;
+} nsfb_plot_pathop_t;
+
 /** Sets a clip rectangle for subsequent plots.
  *
  * Sets a clipping area which constrains all subsequent plotting operations.
@@ -121,6 +135,8 @@ bool nsfb_plot_point(nsfb_t *nsfb, int x, int y, nsfb_colour_t c);
 bool nsfb_plot_cubic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t c);
 
 bool nsfb_plot_quadratic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t cl);
+
+bool nsfb_plot_path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen);
 
 /** copy an area of screen 
  *

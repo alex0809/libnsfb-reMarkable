@@ -4,8 +4,9 @@
 
 #include "libnsfb.h"
 #include "libnsfb_plot.h"
+
 #include "nsfb.h"
-#include "nsfb_plot.h"
+#include "plot.h"
 
 /** Sets a clip rectangle for subsequent plots.
  *
@@ -160,4 +161,9 @@ bool nsfb_plot_cubic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrl
 bool nsfb_plot_quadratic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t c)
 {
     return nsfb->plotter_fns->quadratic(nsfb, curve, ctrla, c);
+}
+
+bool nsfb_plot_path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
+{
+    return nsfb->plotter_fns->path(nsfb, pathc, pathop, pen);
 }

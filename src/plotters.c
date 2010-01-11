@@ -21,8 +21,7 @@
 #include "libnsfb_plot_util.h"
 
 #include "nsfb.h"
-#include "nsfb_plot.h"
-#include "plotters.h"
+#include "plot.h"
 #include "frontend.h"
 
 extern const nsfb_plotter_fns_t _nsfb_1bpp_plotters;

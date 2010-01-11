@@ -17,8 +17,7 @@
 
 #include "nsfb.h"
 #include "frontend.h"
-#include "plotters.h"
-#include "nsfb_plot.h"
+#include "plot.h"
 #include "cursor.h"
 
 enum nsfb_key_code_e sdl_nsfb_map[] = {

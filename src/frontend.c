@@ -13,7 +13,7 @@
 #include <string.h>
 
 #include "frontend.h"
-#include "plotters.h"
+#include "plot.h"
 
 #define MAX_FRONTENDS 16
 

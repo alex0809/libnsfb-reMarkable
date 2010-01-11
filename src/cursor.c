@@ -7,7 +7,7 @@
 
 #include "nsfb.h"
 #include "cursor.h"
-#include "nsfb_plot.h"
+#include "plot.h"
 #include "frontend.h"
 
 bool nsfb_cursor_init(nsfb_t *nsfb)
