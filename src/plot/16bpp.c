@@ -406,6 +406,29 @@ bitmap(nsfb_t *nsfb,
 }
 
 
+static bool readrect(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t *buffer)
+{
+        uint16_t *pvideo;
+        int xloop, yloop;
+        int width;
+
+        if (!nsfb_plot_clip_ctx(nsfb, rect)) {
+                return true;
+        }
+
+        width = rect->x1 - rect->x0;
+
+        pvideo = get_xy_loc(nsfb, rect->x0, rect->y0);
+
+        for (yloop = rect->y0; yloop < rect->y1; yloop += 1) {
+                for (xloop = 0; xloop < width; xloop++) {
+                        *buffer = pixel_to_colour(*(pvideo + xloop));
+                        buffer++;
+                }
+                pvideo += (nsfb->linelen >> 1);
+        }
+        return true;
+}
 
 
 const nsfb_plotter_fns_t _nsfb_16bpp_plotters = {
@@ -415,6 +438,7 @@ const nsfb_plotter_fns_t _nsfb_16bpp_plotters = {
         .bitmap = bitmap,
         .glyph8 = glyph8,
         .glyph1 = glyph1,
+        .readrect = readrect,
 };
 
 /*

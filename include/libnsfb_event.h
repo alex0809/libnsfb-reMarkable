@@ -8,8 +8,8 @@ enum nsfb_event_type_e {
 };
 
 
+/** keycodes which mostly map to ascii chars */
 enum nsfb_key_code_e {
-    /* keycodes which map to ascii chars */
     NSFB_KEY_UNKNOWN		= 0,
     NSFB_KEY_BACKSPACE		= 8,
     NSFB_KEY_TAB		= 9,

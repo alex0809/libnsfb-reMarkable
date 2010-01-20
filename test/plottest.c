@@ -70,6 +70,7 @@ const struct {
 int main(int argc, char **argv)
 {
     nsfb_t *nsfb;
+    int bpp;
     nsfb_event_t event;
     nsfb_bbox_t box;
     nsfb_bbox_t box2;
@@ -80,13 +81,24 @@ int main(int argc, char **argv)
     int loop;
     nsfb_plot_pen_t pen;
 
-    UNUSED(argc);
-    UNUSED(argv);
+    if (argc < 2) {
+	    bpp = 32;
+    } else {
+	    bpp = atoi(argv[1]);
+	    if (bpp == 0)
+		    bpp = 32;
+    }
 
     nsfb = nsfb_init(NSFB_FRONTEND_SDL);
     if (nsfb == NULL) {
         fprintf(stderr, "Unable to initialise nsfb with SDL frontend\n");
         return 1;
+    }
+
+    if (nsfb_set_geometry(nsfb, 0, 0, bpp) == -1) {
+        fprintf(stderr, "Unable to set geometry\n");
+        nsfb_finalise(nsfb);
+        return 3;
     }
 
     if (nsfb_init_frontend(nsfb) == -1) {
