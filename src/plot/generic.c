@@ -604,13 +604,16 @@ static bool quadratic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsf
     return true;
 }
 
-static bool polylines(nsfb_t *nsfb, int pointc, nsfb_point_t *points, nsfb_plot_pen_t *pen)
+
+static bool polylines(nsfb_t *nsfb, int pointc, const nsfb_point_t *points, nsfb_plot_pen_t *pen)
 {
     int point_loop;
+    nsfb_bbox_t line;
 
     if (pen->stroke_type != NFSB_PLOT_OPTYPE_NONE) {
         for (point_loop = 0; point_loop < (pointc - 1); point_loop++) {
-            nsfb->plotter_fns->line(nsfb, 1, (nsfb_bbox_t *)&points[point_loop], pen);
+            line = *(nsfb_bbox_t *)&points[point_loop];
+            nsfb->plotter_fns->line(nsfb, 1, &line, pen);
 	}
     }
     return true;

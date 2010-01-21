@@ -105,7 +105,7 @@ bool nsfb_plot_lines(nsfb_t *nsfb, int linec, nsfb_bbox_t *line, nsfb_plot_pen_t
  *
  * Draw a series of connected lines.
  */
-bool nsfb_plot_polylines(nsfb_t *nsfb, int pointc, nsfb_point_t *points, nsfb_plot_pen_t *pen);
+bool nsfb_plot_polylines(nsfb_t *nsfb, int pointc, const nsfb_point_t *points, nsfb_plot_pen_t *pen);
 
 /** Plots a filled polygon. 
  *

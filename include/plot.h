@@ -90,7 +90,7 @@ typedef bool (nsfb_plotfn_quadratic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, 
  */
 typedef bool (nsfb_plotfn_cubic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t c);
 
-typedef bool (nsfb_plotfn_polylines_t)(nsfb_t *nsfb, int pointc, nsfb_point_t *points, nsfb_plot_pen_t *pen);
+typedef bool (nsfb_plotfn_polylines_t)(nsfb_t *nsfb, int pointc, const nsfb_point_t *points, nsfb_plot_pen_t *pen);
 
 /** plot path */
 typedef bool (nsfb_plotfn_path_t)(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen);
