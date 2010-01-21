@@ -8,7 +8,7 @@ COMPONENT_TYPE ?= lib-static
 include build/makefiles/Makefile.tools
 
 # Reevaluate when used, as BUILDDIR won't be defined yet
-TESTRUNNER = $(BUILDDIR)/test_plottest$(EXEEXT)
+TESTRUNNER = test/runtest.sh $(BUILDDIR) $(EXEEXT)
 
 # Toolchain flags
 WARNFLAGS := -Wall -Wextra -Wundef -Wpointer-arith -Wcast-align \

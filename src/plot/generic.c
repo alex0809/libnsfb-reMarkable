@@ -604,6 +604,66 @@ static bool quadratic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsf
     return true;
 }
 
+static bool polylines(nsfb_t *nsfb, int pointc, nsfb_point_t *points, nsfb_plot_pen_t *pen)
+{
+    int point_loop;
+
+    if (pen->stroke_type != NFSB_PLOT_OPTYPE_NONE) {
+        for (point_loop = 0; point_loop < (pointc - 1); point_loop++) {
+            nsfb->plotter_fns->line(nsfb, 1, (nsfb_bbox_t *)&points[point_loop], pen);
+	}
+    }
+    return true;
+}
+
+static bool 
+path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
+{
+    int path_loop;
+    nsfb_point_t *pts;
+    nsfb_point_t *curpt;
+    int ptc = 0;
+
+        /* count the verticies in the path and add N_SEG extra for curves */
+        for (path_loop = 0; path_loop < pathc; path_loop++) {
+            ptc++;
+            if ((pathop[path_loop].operation == NFSB_PLOT_PATHOP_QUAD) ||
+                (pathop[path_loop].operation == NFSB_PLOT_PATHOP_QUAD))
+                ptc += N_SEG;
+        }
+
+        /* allocate storage for the vertexes */
+        curpt = pts = malloc(ptc * sizeof(nsfb_point_t));
+
+        for (path_loop = 0; path_loop < pathc; path_loop++) {
+            switch (pathop[path_loop].operation) {
+            case NFSB_PLOT_PATHOP_QUAD:
+                curpt-=1;
+                break;
+
+            case NFSB_PLOT_PATHOP_CUBIC:
+                curpt-=2;
+                break;
+
+            default:            
+                *curpt = pathop[path_loop].point;
+                curpt++;
+            }
+        }
+
+    if (pen->fill_type != NFSB_PLOT_OPTYPE_NONE) {
+        polygon(nsfb, (int *)pts, path_loop, pen->fill_colour);
+    }
+
+    if (pen->stroke_type != NFSB_PLOT_OPTYPE_NONE) {
+        polylines(nsfb, path_loop, pts, pen);
+    }
+
+    free(pts);
+
+    return true;
+}
+
 bool select_plotters(nsfb_t *nsfb)
 {
     const nsfb_plotter_fns_t *table = NULL;
@@ -652,6 +712,8 @@ bool select_plotters(nsfb_t *nsfb)
     nsfb->plotter_fns->arc = arc;
     nsfb->plotter_fns->quadratic = quadratic;
     nsfb->plotter_fns->cubic = cubic;
+    nsfb->plotter_fns->path = path;
+    nsfb->plotter_fns->polylines = polylines;
 
     /* set default clip rectangle to size of framebuffer */
     nsfb->clip.x0 = 0;
