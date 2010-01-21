@@ -79,7 +79,7 @@ bool nsfb_plot_lines(nsfb_t *nsfb, int linec, nsfb_bbox_t *line, nsfb_plot_pen_t
 	return nsfb->plotter_fns->line(nsfb, linec, line, pen);
 }
 
-bool nsfb_plot_polylines(nsfb_t *nsfb, int pointc, nsfb_point_t *points, nsfb_plot_pen_t *pen)
+bool nsfb_plot_polylines(nsfb_t *nsfb, int pointc, const nsfb_point_t *points, nsfb_plot_pen_t *pen)
 {
 	return nsfb->plotter_fns->polylines(nsfb, pointc, points, pen);
 }
