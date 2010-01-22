@@ -515,10 +515,10 @@ static bool arc(nsfb_t *nsfb, int x, int y, int radius, int angle1, int angle2, 
 
 #define N_SEG 30
 
-static bool 
+static int
 cubic_points(unsigned int pointc,
-                 nsfb_point_t *point, 
-                 nsfb_bbox_t *curve, 
+             nsfb_point_t *point, 
+             nsfb_bbox_t *curve, 
              nsfb_point_t *ctrla,
              nsfb_point_t *ctrlb)
 {
@@ -531,10 +531,11 @@ cubic_points(unsigned int pointc,
     double d;
     double x;
     double y;
+    int cur_point;
 
-    point->x = curve->x0;
-    point->y = curve->y0;
-    point++;
+    point[0].x = curve->x0;
+    point[0].y = curve->y0;
+    cur_point = 1;
     pointc--;
 
     for (seg_loop = 1; seg_loop < pointc; ++seg_loop) {
@@ -549,16 +550,78 @@ cubic_points(unsigned int pointc,
  
         x = a * curve->x0 + b * ctrla->x + c * ctrlb->x + d * curve->x1;
         y = a * curve->y0 + b * ctrla->y + c * ctrlb->y + d * curve->y1;
-
-        point->x = x;
-        point->y = y;
-        point++;
+        
+        point[cur_point].x = x;
+        point[cur_point].y = y;
+        if ((point[cur_point].x != point[cur_point - 1].x) ||
+            (point[cur_point].y != point[cur_point - 1].y))
+        cur_point++;
     }
 
-    point->x = curve->x1;
-    point->y = curve->y1;
+    point[cur_point].x = curve->x1;
+    point[cur_point].y = curve->y1;
+    if ((point[cur_point].x != point[cur_point - 1].x) ||
+        (point[cur_point].y != point[cur_point - 1].y))
+    cur_point++;
 
-    return true;
+    return cur_point;
+}
+
+/* calculate a series of points which describe a quadratic bezier spline.
+ *
+ * fills an array of points with values describing a quadratic curve. Both the
+ * start and end points are included as the first and last points
+ * respectively. Only if the next point on the curve is different from its
+ * predecessor is the point added which ensures points for the same position
+ * are not repeated.
+ */
+static int
+quadratic_points(unsigned int pointc,
+                 nsfb_point_t *point, 
+                 nsfb_bbox_t *curve, 
+                 nsfb_point_t *ctrla)
+{
+    unsigned int seg_loop;
+    double t;
+    double one_minus_t;
+    double a;
+    double b;
+    double c;
+    double x;
+    double y;
+    int cur_point;
+
+    point[0].x = curve->x0;
+    point[0].y = curve->y0;
+    cur_point = 1;
+    pointc--; /* we have added the start point, one less point in the curve */
+
+    for (seg_loop = 1; seg_loop < pointc; ++seg_loop) {
+        t = (double)seg_loop / (double)pointc;
+
+        one_minus_t = 1.0 - t;
+
+        a = one_minus_t * one_minus_t;
+        b = 2.0 * t * one_minus_t;
+        c = t * t;
+ 
+        x = a * curve->x0 + b * ctrla->x + c * curve->x1;
+        y = a * curve->y0 + b * ctrla->y + c * curve->y1;
+
+        point[cur_point].x = x;
+        point[cur_point].y = y;
+        if ((point[cur_point].x != point[cur_point - 1].x) ||
+            (point[cur_point].y != point[cur_point - 1].y))
+        cur_point++;
+    }
+
+    point[cur_point].x = curve->x1;
+    point[cur_point].y = curve->y1;
+    if ((point[cur_point].x != point[cur_point - 1].x) ||
+        (point[cur_point].y != point[cur_point - 1].y))
+    cur_point++;
+
+    return cur_point;
 }
 
 static bool 
@@ -580,47 +643,6 @@ polylines(nsfb_t *nsfb,
 }
 
 
-static bool 
-quadratic_points(unsigned int pointc,
-                 nsfb_point_t *point, 
-                 nsfb_bbox_t *curve, 
-                 nsfb_point_t *ctrla)
-{
-    unsigned int seg_loop;
-    double t;
-    double one_minus_t;
-    double a;
-    double b;
-    double c;
-    double x;
-    double y;
-
-    point->x = curve->x0;
-    point->y = curve->y0;
-    point++;
-    pointc--;
-    for (seg_loop = 1; seg_loop < pointc; ++seg_loop) {
-        t = (double)seg_loop / (double)pointc;
-
-        one_minus_t = 1.0 - t;
-
-        a = one_minus_t * one_minus_t;
-        b = 2.0 * t * one_minus_t;
-        c = t * t;
- 
-        x = a * curve->x0 + b * ctrla->x + c * curve->x1;
-        y = a * curve->y0 + b * ctrla->y + c * curve->y1;
-
-        point->x = x;
-        point->y = y;
-        point++;
-    }
-
-    point->x = curve->x1;
-    point->y = curve->y1;
-
-    return true;
-}
 
 static bool 
 quadratic(nsfb_t *nsfb, 
@@ -633,9 +655,7 @@ quadratic(nsfb_t *nsfb,
     if (pen->stroke_type == NFSB_PLOT_OPTYPE_NONE)
         return false;
 
-    quadratic_points(N_SEG, points, curve, ctrla);
-
-    return polylines(nsfb, N_SEG, points, pen);
+    return polylines(nsfb, quadratic_points(N_SEG, points, curve, ctrla), points, pen);
 }
 
 static bool 
@@ -650,9 +670,7 @@ cubic(nsfb_t *nsfb,
     if (pen->stroke_type == NFSB_PLOT_OPTYPE_NONE)
         return false;
 
-    cubic_points(N_SEG, points, curve, ctrla,ctrlb);
-
-    return polylines(nsfb, N_SEG, points, pen);
+    return polylines(nsfb, cubic_points(N_SEG, points, curve, ctrla,ctrlb), points, pen);
 }
 
 
@@ -667,6 +685,7 @@ path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
     nsfb_point_t ctrla;
     nsfb_point_t ctrlb;
     int added_count = 0;
+    int bpts;
 
     /* count the verticies in the path and add N_SEG extra for curves */
     for (path_loop = 0; path_loop < pathc; path_loop++) {
@@ -690,9 +709,9 @@ path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
             ctrla.y = pathop[path_loop - 1].point.y;
             curve.x1 = pathop[path_loop].point.x;
             curve.y1 = pathop[path_loop].point.y;
-            quadratic_points(N_SEG, curpt, &curve, &ctrla);
-            curpt+=N_SEG;
-            added_count += N_SEG;
+            bpts = quadratic_points(N_SEG, curpt, &curve, &ctrla);
+            curpt += bpts;
+            added_count += bpts;
             break;
 
         case NFSB_PLOT_PATHOP_CUBIC:
@@ -706,9 +725,9 @@ path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
             ctrlb.y = pathop[path_loop - 1].point.y;
             curve.x1 = pathop[path_loop].point.x;
             curve.y1 = pathop[path_loop].point.y;
-            cubic_points(N_SEG, curpt, &curve, &ctrla, &ctrlb);
-            curpt += N_SEG;
-            added_count += N_SEG;
+            bpts = cubic_points(N_SEG, curpt, &curve, &ctrla, &ctrlb);
+            curpt += bpts;
+            added_count += bpts;
             break;
 
         default:            

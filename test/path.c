@@ -77,11 +77,16 @@ int main(int argc, char **argv)
     pen.stroke_type = NFSB_PLOT_OPTYPE_SOLID;
     pen.fill_type = NFSB_PLOT_OPTYPE_NONE;
 
-    nsfb_plot_path(nsfb, fill_shape(path, 100, 100), path, &pen);
+    nsfb_plot_path(nsfb, fill_shape(path, 100, 50), path, &pen);
 
     pen.fill_type = NFSB_PLOT_OPTYPE_SOLID;
 
-    nsfb_plot_path(nsfb, fill_shape(path, 100, 300), path, &pen);
+    nsfb_plot_path(nsfb, fill_shape(path, 100, 200), path, &pen);
+
+    pen.stroke_type = NFSB_PLOT_OPTYPE_NONE;
+
+    nsfb_plot_path(nsfb, fill_shape(path, 100, 350), path, &pen);
+
 
     nsfb_update(nsfb, &box);
     
