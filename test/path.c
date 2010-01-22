@@ -23,13 +23,13 @@ static int fill_shape(nsfb_plot_pathop_t *path, int xoff, int yoff)
     PENT(NFSB_PLOT_PATHOP_LINE, xoff + 100, yoff + 100);
     PENT(NFSB_PLOT_PATHOP_LINE, xoff + 100, yoff );
     PENT(NFSB_PLOT_PATHOP_LINE, xoff + 200, yoff + 100);
-    //PENT(NFSB_PLOT_PATHOP_MOVE, xoff + 200, yoff - 200);
-    //PENT(NFSB_PLOT_PATHOP_MOVE, xoff + 300, yoff + 300);
-    //PENT(NFSB_PLOT_PATHOP_CUBIC, xoff + 300, yoff );
+    PENT(NFSB_PLOT_PATHOP_MOVE, xoff + 200, yoff - 200);
+    PENT(NFSB_PLOT_PATHOP_MOVE, xoff + 300, yoff + 300);
+    PENT(NFSB_PLOT_PATHOP_CUBIC, xoff + 300, yoff );
     PENT(NFSB_PLOT_PATHOP_LINE, xoff + 400, yoff + 100);
     PENT(NFSB_PLOT_PATHOP_LINE, xoff + 400, yoff );
-    //PENT(NFSB_PLOT_PATHOP_MOVE, xoff + 500, yoff + 200);
-    //PENT(NFSB_PLOT_PATHOP_QUAD, xoff + 500, yoff );
+    PENT(NFSB_PLOT_PATHOP_MOVE, xoff + 500, yoff + 200);
+    PENT(NFSB_PLOT_PATHOP_QUAD, xoff + 500, yoff );
     PENT(NFSB_PLOT_PATHOP_LINE, xoff + 600, yoff + 150);
     PENT(NFSB_PLOT_PATHOP_LINE, xoff, yoff + 150);
     PENT(NFSB_PLOT_PATHOP_LINE, xoff, yoff);

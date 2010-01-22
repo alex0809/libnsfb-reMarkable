@@ -158,14 +158,14 @@ bool nsfb_plot_readrect(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t *buffer)
 }
 
 
-bool nsfb_plot_cubic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t c)
+bool nsfb_plot_cubic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_plot_pen_t *pen)
 {
-    return nsfb->plotter_fns->cubic(nsfb, curve, ctrla, ctrlb, c);
+    return nsfb->plotter_fns->cubic(nsfb, curve, ctrla, ctrlb, pen);
 }
 
-bool nsfb_plot_quadratic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t c)
+bool nsfb_plot_quadratic_bezier(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_plot_pen_t *pen)
 {
-    return nsfb->plotter_fns->quadratic(nsfb, curve, ctrla, c);
+    return nsfb->plotter_fns->quadratic(nsfb, curve, ctrla, pen);
 }
 
 bool nsfb_plot_path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)

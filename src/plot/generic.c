@@ -516,11 +516,12 @@ static bool arc(nsfb_t *nsfb, int x, int y, int radius, int angle1, int angle2, 
 #define N_SEG 30
 
 static bool 
-cubic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t cl)
+cubic_points(unsigned int pointc,
+                 nsfb_point_t *point, 
+                 nsfb_bbox_t *curve, 
+             nsfb_point_t *ctrla,
+             nsfb_point_t *ctrlb)
 {
-    nsfb_bbox_t line;
-    nsfb_plot_pen_t pen;
-
     unsigned int seg_loop;
     double t;
     double one_minus_t;
@@ -531,13 +532,13 @@ cubic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb
     double x;
     double y;
 
-    pen.stroke_colour = cl;
+    point->x = curve->x0;
+    point->y = curve->y0;
+    point++;
+    pointc--;
 
-    x = curve->x0;
-    y = curve->y0;
-
-    for (seg_loop = 1; seg_loop <= N_SEG; ++seg_loop) {
-        t = (double)seg_loop / (double)N_SEG;
+    for (seg_loop = 1; seg_loop < pointc; ++seg_loop) {
+        t = (double)seg_loop / (double)pointc;
 
         one_minus_t = 1.0 - t;
 
@@ -546,66 +547,25 @@ cubic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb
         c = 3.0 * t * t * one_minus_t;
         d = t * t * t;
  
-        line.x0 = x;
-        line.y0 = y;
-
         x = a * curve->x0 + b * ctrla->x + c * ctrlb->x + d * curve->x1;
         y = a * curve->y0 + b * ctrla->y + c * ctrlb->y + d * curve->y1;
 
-        line.x1 = x;
-        line.y1 = y;
-
-        nsfb->plotter_fns->line(nsfb, 1, &line, &pen);
+        point->x = x;
+        point->y = y;
+        point++;
     }
+
+    point->x = curve->x1;
+    point->y = curve->y1;
 
     return true;
 }
 
-static bool quadratic(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t cl)
-{
-    nsfb_bbox_t line;
-    nsfb_plot_pen_t pen;
-
-    unsigned int seg_loop;
-    double t;
-    double one_minus_t;
-    double a;
-    double b;
-    double c;
-    double x;
-    double y;
-
-    pen.stroke_colour = cl;
-
-    x = curve->x0;
-    y = curve->y0;
-
-    for (seg_loop = 1; seg_loop <= N_SEG; ++seg_loop) {
-        t = (double)seg_loop / (double)N_SEG;
-
-        one_minus_t = 1.0 - t;
-
-        a = one_minus_t * one_minus_t;
-        b = 2.0 * t * one_minus_t;
-        c = t * t;
- 
-        line.x0 = x;
-        line.y0 = y;
-
-        x = a * curve->x0 + b * ctrla->x + c * curve->x1;
-        y = a * curve->y0 + b * ctrla->y + c * curve->y1;
-
-        line.x1 = x;
-        line.y1 = y;
-
-        nsfb->plotter_fns->line(nsfb, 1, &line, &pen);
-    }
-
-    return true;
-}
-
-
-static bool polylines(nsfb_t *nsfb, int pointc, const nsfb_point_t *points, nsfb_plot_pen_t *pen)
+static bool 
+polylines(nsfb_t *nsfb, 
+          int pointc, 
+          const nsfb_point_t *points, 
+          nsfb_plot_pen_t *pen)
 {
     int point_loop;
     nsfb_bbox_t line;
@@ -619,6 +579,83 @@ static bool polylines(nsfb_t *nsfb, int pointc, const nsfb_point_t *points, nsfb
     return true;
 }
 
+
+static bool 
+quadratic_points(unsigned int pointc,
+                 nsfb_point_t *point, 
+                 nsfb_bbox_t *curve, 
+                 nsfb_point_t *ctrla)
+{
+    unsigned int seg_loop;
+    double t;
+    double one_minus_t;
+    double a;
+    double b;
+    double c;
+    double x;
+    double y;
+
+    point->x = curve->x0;
+    point->y = curve->y0;
+    point++;
+    pointc--;
+    for (seg_loop = 1; seg_loop < pointc; ++seg_loop) {
+        t = (double)seg_loop / (double)pointc;
+
+        one_minus_t = 1.0 - t;
+
+        a = one_minus_t * one_minus_t;
+        b = 2.0 * t * one_minus_t;
+        c = t * t;
+ 
+        x = a * curve->x0 + b * ctrla->x + c * curve->x1;
+        y = a * curve->y0 + b * ctrla->y + c * curve->y1;
+
+        point->x = x;
+        point->y = y;
+        point++;
+    }
+
+    point->x = curve->x1;
+    point->y = curve->y1;
+
+    return true;
+}
+
+static bool 
+quadratic(nsfb_t *nsfb, 
+          nsfb_bbox_t *curve, 
+          nsfb_point_t *ctrla, 
+          nsfb_plot_pen_t *pen)
+{
+    nsfb_point_t points[N_SEG];
+
+    if (pen->stroke_type == NFSB_PLOT_OPTYPE_NONE)
+        return false;
+
+    quadratic_points(N_SEG, points, curve, ctrla);
+
+    return polylines(nsfb, N_SEG, points, pen);
+}
+
+static bool 
+cubic(nsfb_t *nsfb, 
+      nsfb_bbox_t *curve, 
+      nsfb_point_t *ctrla, 
+      nsfb_point_t *ctrlb, 
+      nsfb_plot_pen_t *pen)
+{
+    nsfb_point_t points[N_SEG];
+
+    if (pen->stroke_type == NFSB_PLOT_OPTYPE_NONE)
+        return false;
+
+    cubic_points(N_SEG, points, curve, ctrla,ctrlb);
+
+    return polylines(nsfb, N_SEG, points, pen);
+}
+
+
 static bool 
 path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
 {
@@ -626,40 +663,68 @@ path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
     nsfb_point_t *pts;
     nsfb_point_t *curpt;
     int ptc = 0;
+    nsfb_bbox_t curve;
+    nsfb_point_t ctrla;
+    nsfb_point_t ctrlb;
+    int added_count = 0;
 
-        /* count the verticies in the path and add N_SEG extra for curves */
-        for (path_loop = 0; path_loop < pathc; path_loop++) {
-            ptc++;
-            if ((pathop[path_loop].operation == NFSB_PLOT_PATHOP_QUAD) ||
-                (pathop[path_loop].operation == NFSB_PLOT_PATHOP_QUAD))
-                ptc += N_SEG;
+    /* count the verticies in the path and add N_SEG extra for curves */
+    for (path_loop = 0; path_loop < pathc; path_loop++) {
+        ptc++;
+        if ((pathop[path_loop].operation == NFSB_PLOT_PATHOP_QUAD) ||
+            (pathop[path_loop].operation == NFSB_PLOT_PATHOP_CUBIC))
+            ptc += N_SEG;
+    }
+
+    /* allocate storage for the vertexes */
+    curpt = pts = malloc(ptc * sizeof(nsfb_point_t));
+
+    for (path_loop = 0; path_loop < pathc; path_loop++) {
+        switch (pathop[path_loop].operation) {
+        case NFSB_PLOT_PATHOP_QUAD:
+            curpt-=2;
+            added_count -= 2;
+            curve.x0 = pathop[path_loop - 2].point.x;
+            curve.y0 = pathop[path_loop - 2].point.y;
+            ctrla.x = pathop[path_loop - 1].point.x;
+            ctrla.y = pathop[path_loop - 1].point.y;
+            curve.x1 = pathop[path_loop].point.x;
+            curve.y1 = pathop[path_loop].point.y;
+            quadratic_points(N_SEG, curpt, &curve, &ctrla);
+            curpt+=N_SEG;
+            added_count += N_SEG;
+            break;
+
+        case NFSB_PLOT_PATHOP_CUBIC:
+            curpt-=3;
+            added_count -=3;
+            curve.x0 = pathop[path_loop - 3].point.x;
+            curve.y0 = pathop[path_loop - 3].point.y;
+            ctrla.x = pathop[path_loop - 2].point.x;
+            ctrla.y = pathop[path_loop - 2].point.y;
+            ctrlb.x = pathop[path_loop - 1].point.x;
+            ctrlb.y = pathop[path_loop - 1].point.y;
+            curve.x1 = pathop[path_loop].point.x;
+            curve.y1 = pathop[path_loop].point.y;
+            cubic_points(N_SEG, curpt, &curve, &ctrla, &ctrlb);
+            curpt += N_SEG;
+            added_count += N_SEG;
+            break;
+
+        default:            
+            *curpt = pathop[path_loop].point;
+            curpt++;
+            added_count ++;
+            break;
         }
-
-        /* allocate storage for the vertexes */
-        curpt = pts = malloc(ptc * sizeof(nsfb_point_t));
-
-        for (path_loop = 0; path_loop < pathc; path_loop++) {
-            switch (pathop[path_loop].operation) {
-            case NFSB_PLOT_PATHOP_QUAD:
-                curpt-=1;
-                break;
-
-            case NFSB_PLOT_PATHOP_CUBIC:
-                curpt-=2;
-                break;
-
-            default:            
-                *curpt = pathop[path_loop].point;
-                curpt++;
-            }
-        }
+    }
 
     if (pen->fill_type != NFSB_PLOT_OPTYPE_NONE) {
-        polygon(nsfb, (int *)pts, path_loop, pen->fill_colour);
+        polygon(nsfb, (int *)pts, added_count, pen->fill_colour);
     }
 
     if (pen->stroke_type != NFSB_PLOT_OPTYPE_NONE) {
-        polylines(nsfb, path_loop, pts, pen);
+        polylines(nsfb, added_count, pts, pen);
     }
 
     free(pts);

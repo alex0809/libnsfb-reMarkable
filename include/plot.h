@@ -84,11 +84,11 @@ typedef	bool (nsfb_plotfn_readrect_t)(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colo
 
 /** Plot quadratic bezier spline
  */
-typedef bool (nsfb_plotfn_quadratic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_colour_t c);
+typedef bool (nsfb_plotfn_quadratic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_plot_pen_t *pen);
 
 /** Plot cubic bezier spline
  */
-typedef bool (nsfb_plotfn_cubic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_colour_t c);
+typedef bool (nsfb_plotfn_cubic_bezier_t)(nsfb_t *nsfb, nsfb_bbox_t *curve, nsfb_point_t *ctrla, nsfb_point_t *ctrlb, nsfb_plot_pen_t *pen);
 
 typedef bool (nsfb_plotfn_polylines_t)(nsfb_t *nsfb, int pointc, const nsfb_point_t *points, nsfb_plot_pen_t *pen);
 

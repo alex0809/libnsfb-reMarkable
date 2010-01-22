@@ -55,17 +55,21 @@ int main(int argc, char **argv)
     box2.x1=400;
     box2.y1=400;
 
+    pen.stroke_colour = 0xff000000;
+    pen.fill_colour = 0xffff0000;
+    pen.stroke_type = NFSB_PLOT_OPTYPE_SOLID;
+    pen.fill_type = NFSB_PLOT_OPTYPE_NONE;
+
     for (loop=-300;loop < 600;loop+=100) {
-    ctrla.x = 100;
-    ctrla.y = loop;
+        ctrla.x = 100;
+        ctrla.y = loop;
 
-    ctrlb.x = 400;
-    ctrlb.y = 500 - loop;
+        ctrlb.x = 400;
+        ctrlb.y = 500 - loop;
 
-    nsfb_plot_cubic_bezier(nsfb, &box2, &ctrla, &ctrlb, 0xff000000);
+        nsfb_plot_cubic_bezier(nsfb, &box2, &ctrla, &ctrlb, &pen);
     }
 
-    pen.stroke_colour = 0xff000000;
 
     box2.x0=400;
     box2.y0=100;
@@ -92,7 +96,9 @@ int main(int argc, char **argv)
     ctrla.x = 600;
     ctrla.y = 400;
 
-    nsfb_plot_cubic_bezier(nsfb, &box2, &ctrla, &ctrla, 0xffff0000);
+    pen.stroke_colour = 0xffff0000;
+
+    nsfb_plot_cubic_bezier(nsfb, &box2, &ctrla, &ctrla, &pen);
 
     box2.x0=400;
     box2.y0=100;
@@ -103,7 +109,9 @@ int main(int argc, char **argv)
     ctrla.x = 600;
     ctrla.y = 400;
 
-    nsfb_plot_quadratic_bezier(nsfb, &box2, &ctrla, 0xff0000ff);
+    pen.stroke_colour = 0xff0000ff;
+
+    nsfb_plot_quadratic_bezier(nsfb, &box2, &ctrla, &pen);
 
     nsfb_update(nsfb, &box);
     

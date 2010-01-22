@@ -62,6 +62,7 @@ int main(int argc, char **argv)
     pen.stroke_colour = 0xff000000;
     pen.stroke_type = NFSB_PLOT_OPTYPE_SOLID;
 
+
     for (rotate =0; rotate < (2 * M_PI); rotate += (M_PI / 8)) {
 	    /* claim the whole screen for update */
 	    nsfb_claim(nsfb, &box);
@@ -70,7 +71,7 @@ int main(int argc, char **argv)
 
 	    radius = (box.y1 / 2);
 
-	    for (sides = 10; sides >=9; sides-=2) {
+	    for (sides = 18; sides >=9; sides-=2) {
 		    points = malloc(sizeof(nsfb_point_t) * sides);
 
 		    for (loop = 0; loop < sides;loop+=2) {
