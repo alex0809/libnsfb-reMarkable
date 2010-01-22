@@ -237,7 +237,7 @@ polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 			if (x1 == nsfb->clip.x1 || x1 == poly_x1)
 				break;
 
-			if (x0 == x1)
+			/* if (x0 == x1) FIXME: This is a hack and breaks other cases */
 				x1++;
 		}
 	}
