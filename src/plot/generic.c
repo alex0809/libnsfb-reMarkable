@@ -133,6 +133,8 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 	bool found_span_start = false;
 
 	x0_min = x1_min = INT_MIN;
+	x0c = x1c = 0;
+	*x0 = *x1 = INT_MAX;
 
 	/* search row for next span, returning it if one exists */
 	do {
