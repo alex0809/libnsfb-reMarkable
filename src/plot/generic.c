@@ -82,15 +82,19 @@ static bool clg(nsfb_t *nsfb, nsfb_colour_t c)
  *
  *                      (a)            (b)            (c)            (d)
  *
- * Normal crossing             (Fig. a)    value = 1
- * Vertex crossing             (Fig. b)    value = 1
- * Vertex not crossing top     (Fig. c)    value = 1
- * Vertex not crossing bottom  (Fig. d)    value = 0
  *
- * Vertexes are shared between consecitive lines.  This function ensures that
+ * Figure (a) values:  1     = 1  --  Odd  -- Valid crossing
+ * Figure (b) values:  0 + 1 = 1  --  Odd  -- Valid crossing
+ * Figure (c) values:  1 + 1 = 2  --  Even -- Not valid crossing
+ * Figure (d) values:  0 + 0 = 0  --  Even -- Not valid crossing
+ *
+ * Vertices are shared between consecutive lines.  This function ensures that
  * the vertex point is only counted as a crossing for one of the lines by
  * only considering crossings of the top vertex.  This is what NetSurf's
  * plotter API expects.
+ *
+ * It's up to the client to call this function for both lines and check the
+ * evenness of the total.
  */
 static bool establish_crossing_value(int x, int y, int x0, int y0,
 		int x1, int y1)
