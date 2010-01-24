@@ -63,6 +63,54 @@ static bool clg(nsfb_t *nsfb, nsfb_colour_t c)
 }
 
 /**
+ * Establish whether there is any value in a line's crossing.
+ * (Helper function for find_span().)
+ *
+ * \param  x	 x coordinate of intersection
+ * \param  y	 current y level
+ * \param  x0	 line start coordinate
+ * \param  y0	 line start coordinate
+ * \param  x1	 line end coordinate
+ * \param  y1	 line end coordinate
+ * \return true	 if crossing has value
+ *
+ *                         +            |                             | /
+ *                        /             |                             |/
+ *   y level --      ----/----      ----+----      ----+----      ----+----
+ *                      /              /              /|
+ *                     +             /               / |
+ *
+ *                      (a)            (b)            (c)            (d)
+ *
+ * Normal crossing             (Fig. a)    value = 1
+ * Vertex crossing             (Fig. b)    value = 1
+ * Vertex not crossing top     (Fig. c)    value = 1
+ * Vertex not crossing bottom  (Fig. d)    value = 0
+ *
+ * Vertexes are shared between consecitive lines.  This function ensures that
+ * the vertex point is only counted as a crossing for one of the lines by
+ * only considering crossings of the top vertex.  This is what NetSurf's
+ * plotter API expects.
+ */
+static bool establish_crossing_value(int x, int y, int x0, int y0,
+		int x1, int y1)
+{
+	bool v1 = (x == x0 && y == y0); /* whether we're crossing 1st vertex */
+	bool v2 = (x == x1 && y == y1); /* whether we're crossing 2nd vertex */
+
+	if ((v1 && (y0 < y1)) || (v2 && (y1 < y0))) {
+		/* crossing top vertex */
+		return true;
+	} else if (!v1 && !v2) {
+		/* Intersection with current y level is not at a vertex.
+		 * Normal crossing. */
+		return true;
+	}
+	return false;
+}
+
+
+/**
  * Find first filled span along horizontal line at given coordinate
  *
  * \param  p	 array of polygon vertices (x1, y1, x2, y2, ... , xN, yN)
@@ -78,71 +126,111 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 	int i;
 	int p_x0, p_y0;
 	int p_x1, p_y1;
+	int x0_min, x1_min;
 	int x_new;
-	bool direction = false;
+	unsigned int x0c, x1c; /* counters for crossings at span end points */
+	bool crossing_value;
+	bool found_span_start = false;
 
-	*x0 = *x1 = INT_MAX;
+	x0_min = x1_min = INT_MIN;
 
-	for (i = 0; i < n; i = i + 2) {
-		/* get line endpoints */
-		if (i != n - 2) {
-			/* not the last line */
-			p_x0 = p[i];		p_y0 = p[i + 1];
-			p_x1 = p[i + 2];	p_y1 = p[i + 3];
-		} else {
-			/* last line; 2nd endpoint is first vertex */
-			p_x0 = p[i];		p_y0 = p[i + 1];
-			p_x1 = p[0];		p_y1 = p[1];
-		}
-		/* ignore horizontal lines */
-		if (p_y0 == p_y1)
-			continue;
+	/* search row for next span, returning it if one exists */
+	do {
+		/* reset endpoint info, if valid span endpoints not found */
+		if (!found_span_start)
+			*x0 = INT_MAX;
+		*x1 = INT_MAX;
 
-		/* ignore lines that don't cross this y level */
-		if ((y < p_y0 && y < p_y1) || (y > p_y0 && y > p_y1))
-			continue;
+		/* search all lines in polygon */
+		for (i = 0; i < n; i = i + 2) {
+			/* get line endpoints */
+			if (i != n - 2) {
+				/* not the last line */
+				p_x0 = p[i];		p_y0 = p[i + 1];
+				p_x1 = p[i + 2];	p_y1 = p[i + 3];
+			} else {
+				/* last line; 2nd endpoint is first vertex */
+				p_x0 = p[i];		p_y0 = p[i + 1];
+				p_x1 = p[0];		p_y1 = p[1];
+			}
+			/* ignore horizontal lines */
+			if (p_y0 == p_y1)
+				continue;
 
-		if (p_x0 == p_x1) {
-			/* vertical line, x is constant */
-			x_new = p_x0;
-		} else {
-			/* find intersect */
-			x_new = p_x0 + ((long long)(y - p_y0) * (p_x1 - p_x0)) /
-					(p_y1 - p_y0);
-		}
+			/* ignore lines that don't cross this y level */
+			if ((y < p_y0 && y < p_y1) || (y > p_y0 && y > p_y1))
+				continue;
 
-		/* ignore intersections before current x */
-		if (x_new < x)
-			continue;
+			if (p_x0 == p_x1) {
+				/* vertical line, x is constant */
+				x_new = p_x0;
+			} else {
+				/* find crossing (intersection of this line and
+				 * current y level) */
+				x_new = p_x0 + ((long long)
+						(y - p_y0) * (p_x1 - p_x0)) /
+						(p_y1 - p_y0);
+			}
 
-		/* set nearest intersections as filled area endpoints */
-		if (x_new < *x0) {
-			/* nearer than first endpoint */
-			*x1 = *x0;
-			*x0 = x_new;
-			direction = (p_y0 > p_y1);
-		} else if (x_new == *x0) {
-			/* same as first endpoint */
-			if ((p_y0 > p_y1) != direction)
+			/* ignore crossings before current x */
+			if (x_new < x ||
+					(!found_span_start && x_new < x0_min) ||
+					(found_span_start && x_new < x1_min))
+				continue;
+
+			crossing_value = establish_crossing_value(x_new, y,
+					p_x0, p_y0, p_x1, p_y1);
+
+
+			/* set nearest intersections as filled area endpoints */
+			if (!found_span_start &&
+					x_new < *x0 && crossing_value) {
+				/* nearer than first endpoint */
+				*x1 = *x0;
+				x1c = x0c;
+				*x0 = x_new;
+				x0c = 1;
+			} else if (!found_span_start &&
+					x_new == *x0 && crossing_value) {
+				/* same as first endpoint */
+				x0c++;
+			} else if (x_new < *x1 && crossing_value) {
+				/* nearer than second endpoint */
 				*x1 = x_new;
-		} else if (x_new < *x1) {
-			/* nearer than second endpoint */
-			*x1 = x_new;
+				x1c = 1;
+			} else if (x_new == *x1 && crossing_value) {
+				/* same as second endpoint */
+				x1c++;
+			}
 		}
+		/* check whether the span endpoints have been found */
+		if (!found_span_start && x0c % 2 == 1) {
+			/* valid fill start found */
+			found_span_start = true;
 
-	}
-	if (*x0 == INT_MAX)
-		/* no span found */
-		return false;
+		}
+		if (x1c % 2 == 1) {
+			/* valid fill endpoint found */
+			if (!found_span_start) {
+				/* not got a start yet; use this as start */
+				found_span_start = true;
+				x0c = x1c;
+				*x0 = *x1;
+			} else {
+				/* got valid end of span */
+				return true;
+			}
+		}
+		/* if current positions aren't valid endpoints, set new
+		 * minimums after current positions */
+		if (!found_span_start)
+			x0_min = *x0 + 1;
+		x1_min = *x1 + 1;
 
-	/* span found */
-	if (*x1 == INT_MAX) {
-		*x1 = *x0;
-		*x0 = x;
-		return true;
-	}
+	} while (*x1 != INT_MAX);
 
-	return true;
+	/* no spans found */
+	return false;
 }
 
 
@@ -155,8 +243,7 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
  * \param  c	 fill colour
  * \return true	 if no errors
  */
-static bool 
-polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
+static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 {
 	int poly_x0, poly_y0; /* Bounding box top left corner */
 	int poly_x1, poly_y1; /* Bounding box bottom right corner */
@@ -211,9 +298,9 @@ polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 		y_max = nsfb->clip.y1;
 
 	for (; y < y_max; y++) {
-		x1 = poly_x0;
+		x1 = poly_x0 - 1;
 		/* For each row */
-		while (find_span(p, v, x1, y, &x0, &x1)) {
+		while (find_span(p, v, x1 + 1, y, &x0, &x1)) {
 			/* don't draw anything outside clip region */
 			if (x1 < nsfb->clip.x0)
 				continue;
@@ -236,15 +323,12 @@ polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 			 * region or polygon */
 			if (x1 == nsfb->clip.x1 || x1 == poly_x1)
 				break;
-
-			/* if (x0 == x1) FIXME: This is a hack and breaks other cases */
-				x1++;
 		}
 	}
 	return true;
 }
 
-static bool 
+static bool
 rectangle(nsfb_t *nsfb, nsfb_bbox_t *rect,
 	  int line_width, nsfb_colour_t c,
 	  bool dotted, bool dashed)
@@ -274,7 +358,7 @@ rectangle(nsfb_t *nsfb, nsfb_bbox_t *rect,
 }
 
 /* plotter routine for ellipse points */
-static void 
+static void
 ellipsepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
 {
     nsfb->plotter_fns->point(nsfb, cx + x, cy + y, c);
@@ -283,7 +367,7 @@ ellipsepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
     nsfb->plotter_fns->point(nsfb, cx - x, cy - y, c);
 }
 
-static void 
+static void
 ellipsefill(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
 {
     nsfb_bbox_t fline[2];
@@ -302,7 +386,7 @@ ellipsefill(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
 
 #define ROUND(a) ((int)(a+0.5))
 
-static bool 
+static bool
 ellipse_midpoint(nsfb_t *nsfb,
 		 int cx,
 		 int cy,
@@ -357,7 +441,7 @@ ellipse_midpoint(nsfb_t *nsfb,
 
 
 /* plotter routine for 8way circle symetry */
-static void 
+static void
 circlepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
 {
     nsfb->plotter_fns->point(nsfb, cx + x, cy + y, c);
@@ -370,7 +454,7 @@ circlepoints(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
     nsfb->plotter_fns->point(nsfb, cx - y, cy - x, c);
 }
 
-static void 
+static void
 circlefill(nsfb_t *nsfb, int cx, int cy, int x, int y, nsfb_colour_t c)
 {
     nsfb_bbox_t fline[4];
@@ -446,17 +530,17 @@ static bool ellipse_fill(nsfb_t *nsfb, nsfb_bbox_t *ellipse, nsfb_colour_t c)
 
 /* copy an area of screen from one location to another.
  *
- * @warning This implementation is woefully incomplete! 
+ * @warning This implementation is woefully incomplete!
  */
-static bool 
+static bool
 copy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 {
     int srcx = srcbox->x0;
-    int srcy = srcbox->y0; 
-    int dstx = dstbox->x0; 
+    int srcy = srcbox->y0;
+    int dstx = dstbox->x0;
     int dsty = dstbox->y0;
     int width = dstbox->x1 - dstbox->x0;
-    int height = dstbox->y1 - dstbox->y0; 
+    int height = dstbox->y1 - dstbox->y0;
     uint8_t *srcptr;
     uint8_t *dstptr;
     int hloop;
@@ -517,8 +601,8 @@ static bool arc(nsfb_t *nsfb, int x, int y, int radius, int angle1, int angle2, 
 
 static int
 cubic_points(unsigned int pointc,
-             nsfb_point_t *point, 
-             nsfb_bbox_t *curve, 
+             nsfb_point_t *point,
+             nsfb_bbox_t *curve,
              nsfb_point_t *ctrla,
              nsfb_point_t *ctrlb)
 {
@@ -547,10 +631,10 @@ cubic_points(unsigned int pointc,
         b = 3.0 * t * one_minus_t * one_minus_t;
         c = 3.0 * t * t * one_minus_t;
         d = t * t * t;
- 
+
         x = a * curve->x0 + b * ctrla->x + c * ctrlb->x + d * curve->x1;
         y = a * curve->y0 + b * ctrla->y + c * ctrlb->y + d * curve->y1;
-        
+
         point[cur_point].x = x;
         point[cur_point].y = y;
         if ((point[cur_point].x != point[cur_point - 1].x) ||
@@ -577,8 +661,8 @@ cubic_points(unsigned int pointc,
  */
 static int
 quadratic_points(unsigned int pointc,
-                 nsfb_point_t *point, 
-                 nsfb_bbox_t *curve, 
+                 nsfb_point_t *point,
+                 nsfb_bbox_t *curve,
                  nsfb_point_t *ctrla)
 {
     unsigned int seg_loop;
@@ -604,7 +688,7 @@ quadratic_points(unsigned int pointc,
         a = one_minus_t * one_minus_t;
         b = 2.0 * t * one_minus_t;
         c = t * t;
- 
+
         x = a * curve->x0 + b * ctrla->x + c * curve->x1;
         y = a * curve->y0 + b * ctrla->y + c * curve->y1;
 
@@ -624,10 +708,10 @@ quadratic_points(unsigned int pointc,
     return cur_point;
 }
 
-static bool 
-polylines(nsfb_t *nsfb, 
-          int pointc, 
-          const nsfb_point_t *points, 
+static bool
+polylines(nsfb_t *nsfb,
+          int pointc,
+          const nsfb_point_t *points,
           nsfb_plot_pen_t *pen)
 {
     int point_loop;
@@ -644,10 +728,10 @@ polylines(nsfb_t *nsfb,
 
 
 
-static bool 
-quadratic(nsfb_t *nsfb, 
-          nsfb_bbox_t *curve, 
-          nsfb_point_t *ctrla, 
+static bool
+quadratic(nsfb_t *nsfb,
+          nsfb_bbox_t *curve,
+          nsfb_point_t *ctrla,
           nsfb_plot_pen_t *pen)
 {
     nsfb_point_t points[N_SEG];
@@ -658,11 +742,11 @@ quadratic(nsfb_t *nsfb,
     return polylines(nsfb, quadratic_points(N_SEG, points, curve, ctrla), points, pen);
 }
 
-static bool 
-cubic(nsfb_t *nsfb, 
-      nsfb_bbox_t *curve, 
-      nsfb_point_t *ctrla, 
-      nsfb_point_t *ctrlb, 
+static bool
+cubic(nsfb_t *nsfb,
+      nsfb_bbox_t *curve,
+      nsfb_point_t *ctrla,
+      nsfb_point_t *ctrlb,
       nsfb_plot_pen_t *pen)
 {
     nsfb_point_t points[N_SEG];
@@ -674,7 +758,7 @@ cubic(nsfb_t *nsfb,
 }
 
 
-static bool 
+static bool
 path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
 {
     int path_loop;
@@ -730,7 +814,7 @@ path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
             added_count += bpts;
             break;
 
-        default:            
+        default:
             *curpt = pathop[path_loop].point;
             curpt++;
             added_count ++;
