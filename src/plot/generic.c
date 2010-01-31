@@ -173,9 +173,22 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 			} else {
 				/* find crossing (intersection of this line and
 				 * current y level) */
-				x_new = p_x0 + ((long long)
-						(y - p_y0) * (p_x1 - p_x0)) /
-						(p_y1 - p_y0);
+				int numerator = (y - p_y0) * (p_x1 - p_x0);
+				int denominator = (p_y1 - p_y0);
+
+				/* To round to nearest (rather than down)
+				 * half the denominator is either added to
+				 * or subtracted from the numerator,
+				 * depending on whether the numerator and
+				 * denominator have the same sign */
+				if ((numerator < 0) == (denominator < 0))
+					x_new = p_x0 + (numerator +
+							(denominator / 2)) /
+							denominator;
+				else
+					x_new = p_x0 + (numerator -
+							(denominator / 2)) /
+							denominator;
 			}
 
 			/* ignore crossings before current x */
