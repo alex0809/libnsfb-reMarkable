@@ -35,7 +35,6 @@ int main(int argc, char **argv)
     int radius;
     nsfb_point_t *points;
     int loop;
-    double rotate;
     int counter;
     int colour;
 
@@ -62,7 +61,7 @@ int main(int argc, char **argv)
     sides = 5;
     counter = 0;
 
-    for (rotate = 0; rotate < (2 * M_PI); rotate += (M_PI / 4)) {
+    for (counter = 0; counter < 20; counter++) {
         /* claim the whole screen for update */
         nsfb_claim(nsfb, &box);
 
@@ -72,9 +71,9 @@ int main(int argc, char **argv)
 
         for (loop = 0; loop < sides;loop++) {
             points[(2 * loop) % sides].x = (box.x1 / 2) +
-                    (radius * cos(loop * 2 * M_PI / sides + rotate));
+                    (radius * cos(loop * 2 * M_PI / sides));
             points[(2 * loop) % sides].y = (box.y1 / 2) +
-                    (radius * sin(loop * 2 * M_PI / sides + rotate));
+                    (radius * sin(loop * 2 * M_PI / sides));
         }
 
         if (counter % 3 == 0)
@@ -87,9 +86,7 @@ int main(int argc, char **argv)
         nsfb_plot_polygon(nsfb, (const int *)points, sides, colour);
         free(points);
 
-        if (counter % 2 == 0)
-            sides += 2;
-        counter++;
+        sides += 2;
 
         nsfb_update(nsfb, &box);
         sleepMilli(400);
