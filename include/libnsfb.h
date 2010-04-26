@@ -38,7 +38,8 @@ enum nsfb_frontend_e {
     NSFB_FRONTEND_LINUX, /**< Linux frontend */
     NSFB_FRONTEND_VNC, /**< VNC frontend */
     NSFB_FRONTEND_ABLE, /**< ABLE frontend */
-    NSFB_FRONTEND_RAM /**< RAM frontend */
+    NSFB_FRONTEND_RAM, /**< RAM frontend */
+    NSFB_FRONTEND_X /**< X windows frontend */
 };
 
 /** Initialise nsfb context.

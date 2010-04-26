@@ -12,10 +12,12 @@
 #include "libnsfb.h"
 #include "libnsfb_event.h"
 #include "libnsfb_plot.h"
+#include "libnsfb_plot_util.h"
 
 #include "nsfb.h"
 #include "plot.h"
 #include "frontend.h"
+#include "cursor.h"
 
 
 #define UNUSED(x) ((x) = (x))
@@ -107,9 +109,11 @@ static int linux_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 }
 
 
-static int linux_release(nsfb_t *nsfb, nsfb_bbox_t *box)
+static int linux_update(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
     struct nsfb_cursor_s *cursor = nsfb->cursor;
+
+    UNUSED(box);
 
     if ((cursor != NULL) && (cursor->plotted == false)) {
         nsfb_cursor_plot(nsfb, cursor);
@@ -123,7 +127,7 @@ const nsfb_frontend_rtns_t linux_rtns = {
     .finalise = linux_finalise,
     .input = linux_input,
     .claim = linux_claim,
-    .release = linux_release,
+    .update = linux_update,
     .cursor = linux_cursor,
     .geometry = linux_set_geometry,
 };
