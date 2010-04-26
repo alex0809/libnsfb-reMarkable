@@ -6,9 +6,14 @@
  *                http://www.opensource.org/licenses/mit-license.php
  */
 
+#define _XOPEN_SOURCE 500
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 #include <xcb/xcb.h>
 #include <xcb/xcb_image.h>
@@ -25,12 +30,39 @@
 #include "plot.h"
 #include "cursor.h"
 
+#if defined(NEED_HINTS_ALLOC)
+xcb_size_hints_t *
+xcb_alloc_size_hints(void)
+{
+    return calloc(1, sizeof(xcb_size_hints_t));
+}
+
+void
+xcb_free_size_hints(xcb_size_hints_t *hints)
+{
+    free(hints);
+}
+#endif
+
 #define X_BUTTON_LEFT 1
 #define X_BUTTON_MIDDLE 2
 #define X_BUTTON_RIGHT 3
 #define X_BUTTON_WHEELUP 4
 #define X_BUTTON_WHEELDOWN 5
 
+typedef struct xstate_s {
+    xcb_connection_t *connection; /* The x server connection */
+    xcb_screen_t *screen; /* The screen to put the window on */
+
+    xcb_shm_segment_info_t shminfo;
+
+    xcb_image_t *image; /* The X image buffer */
+
+    xcb_window_t window; /* The handle to the window */
+    xcb_pixmap_t pmap; /* The handle to the backing pixmap */
+    xcb_gcontext_t gc; /* The handle to the pixmap plotting graphics context */
+    xcb_shm_seg_t segment; /* The handle to the image shared memory */
+} xstate_t;
 
 enum nsfb_key_code_e x_nsfb_map[] = {
     NSFB_KEY_UNKNOWN,
@@ -388,6 +420,39 @@ enum nsfb_key_code_e x_nsfb_map[] = {
   }
 */
 
+static int
+update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
+{
+    if (xstate->shminfo.shmseg == 0) {
+        /* not using shared memory */
+        xcb_put_image(xstate->connection,
+                      xstate->image->format,
+                      xstate->pmap,
+                      xstate->gc,
+                      xstate->image->width,
+                      height,
+                      0,
+                      y,
+                      0,
+                      xstate->image->depth,
+                      (height) * xstate->image->stride,
+                      xstate->image->data + (y * xstate->image->stride));
+    } else {
+        /* shared memory */
+        xcb_image_shm_put(xstate->connection, xstate->pmap, xstate->gc, xstate->image, xstate->shminfo, x,y,x,y,width,height,0);
+        xcb_flush(xstate->connection);
+    }
+
+    xcb_copy_area(xstate->connection,
+                  xstate->pmap,
+                  xstate->window,
+                  xstate->gc,
+                  x, y,
+                  x, y,
+                  width, height);
+    return 0;
+}
+
 static int x_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
 {
     if (nsfb->frontend_priv != NULL)
@@ -403,16 +468,6 @@ static int x_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
     return 0;
 }
 
-typedef struct xstate_s {
-    xcb_connection_t *connection; /* The x server connection */
-    xcb_screen_t *screen; /* The screen to put the window on */
-
-    xcb_image_t *image; /* The X image buffer */
-
-    xcb_window_t window; /* The handle to the window */
-    xcb_pixmap_t pmap; /* The handle to the backing pixmap */
-    xcb_gcontext_t gc; /* The handle to the pixmap plotting graphics context */
-} xstate_t;
 
 static xcb_format_t *
 find_format(xcb_connection_t * c, uint8_t depth, uint8_t bpp)
@@ -426,6 +481,70 @@ find_format(xcb_connection_t * c, uint8_t depth, uint8_t bpp)
         }
     return 0;
 }
+
+static xcb_image_t *
+create_shm_image(xstate_t *xstate, int width, int height, int bpp)
+{
+    const xcb_setup_t *setup = xcb_get_setup(xstate->connection);
+    unsigned char *image_data;
+    xcb_format_t *fmt;
+    int depth = bpp;
+    uint32_t image_size;
+    int shmid;
+
+    xcb_shm_query_version_reply_t *rep;
+    xcb_shm_query_version_cookie_t ck;
+
+    ck = xcb_shm_query_version(xstate->connection);
+    rep = xcb_shm_query_version_reply(xstate->connection, ck , NULL);
+    if ((!rep) ||
+        (rep->major_version < 1) ||
+        (rep->major_version == 1 && rep->minor_version == 0)) {
+        fprintf (stderr, "No or insufficient shm support...\n");
+        return NULL;
+    }
+    free(rep);
+
+    if (bpp == 32)
+        depth = 24;
+
+    fmt = find_format(xstate->connection, depth, bpp);
+    if (fmt == NULL)
+        return NULL;
+
+    /* doing it this way ensures we deal with bpp smaller than 8 */
+    image_size = (bpp * width * height) >> 3;
+
+    /* get the shared memory segment */
+    shmid = shmget(IPC_PRIVATE, image_size, IPC_CREAT|0777);
+    if (shmid == -1)
+        return NULL;
+
+    xstate->shminfo.shmid = shmid;
+    xstate->shminfo.shmaddr = shmat(xstate->shminfo.shmid, 0, 0);
+    image_data = xstate->shminfo.shmaddr;
+
+    xstate->shminfo.shmseg = xcb_generate_id(xstate->connection);
+    xcb_shm_attach(xstate->connection,
+                   xstate->shminfo.shmseg,
+                   xstate->shminfo.shmid, 0);
+
+    shmctl(xstate->shminfo.shmid, IPC_RMID, 0);
+
+    return xcb_image_create(width,
+                            height,
+                            XCB_IMAGE_FORMAT_Z_PIXMAP,
+                            fmt->scanline_pad,
+                            fmt->depth,
+                            fmt->bits_per_pixel,
+                            0,
+                            setup->image_byte_order,
+                            XCB_IMAGE_ORDER_LSB_FIRST,
+                            image_data,
+                            image_size,
+                            image_data);
+}
+
 
 static xcb_image_t *
 create_image(xcb_connection_t *c, int width, int height, int bpp)
@@ -494,6 +613,7 @@ create_blank_cursor(xcb_connection_t *conn, const xcb_screen_t *scr)
     return cur;
 }
 
+
 static int x_initialise(nsfb_t *nsfb)
 {
     uint32_t mask;
@@ -524,7 +644,11 @@ static int x_initialise(nsfb_t *nsfb)
     xstate->screen = xcb_setup_roots_iterator(xcb_get_setup(xstate->connection)).data;
 
     /* create image */
-    xstate->image = create_image(xstate->connection, nsfb->width, nsfb->height, nsfb->bpp);
+    xstate->image = create_shm_image(xstate, nsfb->width, nsfb->height, nsfb->bpp);
+
+    if (xstate->image == NULL)
+        xstate->image = create_image(xstate->connection, nsfb->width, nsfb->height, nsfb->bpp);
+
     if (xstate->image == NULL) {
         fprintf(stderr, "Unable to create image\n");
         free(xstate);
@@ -578,12 +702,13 @@ static int x_initialise(nsfb_t *nsfb)
     xstate->gc = xcb_generate_id (xstate->connection);
     xcb_create_gc(xstate->connection, xstate->gc, xstate->pmap, mask, values);
 
-    /* put the image into the pixmap */
-    xcb_image_put(xstate->connection, xstate->pmap, xstate->gc, xstate->image, 0, 0, 0);
-
     /*    if (nsfb->bpp == 8)
           set_palette(nsfb);
     */
+
+    /* put the image into the pixmap */
+    update_and_redraw_pixmap(xstate, 0, 0, xstate->image->width, xstate->image->height);
+
 
     /* show the window */
     xcb_map_window (xstate->connection, xstate->window);
@@ -750,31 +875,6 @@ static int x_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
 }
 
 
-static int
-update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
-{
-    xcb_put_image(xstate->connection,
-                  xstate->image->format,
-                  xstate->pmap,
-                  xstate->gc,
-                  xstate->image->width,
-                  height,
-                  0,
-                  y,
-                  0,
-                  xstate->image->depth,
-                  (height) * xstate->image->stride,
-                  xstate->image->data + (y * xstate->image->stride));
-
-    xcb_copy_area(xstate->connection,
-                  xstate->pmap,
-                  xstate->window,
-                  xstate->gc,
-                  x, y,
-                  x, y,
-                  width, height);
-    return 0;
-}
 
 static int
 x_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
