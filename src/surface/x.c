@@ -25,6 +25,13 @@
 #include "plot.h"
 #include "cursor.h"
 
+#define X_BUTTON_LEFT 1
+#define X_BUTTON_MIDDLE 2
+#define X_BUTTON_RIGHT 3
+#define X_BUTTON_WHEELUP 4
+#define X_BUTTON_WHEELDOWN 5
+
+
 enum nsfb_key_code_e x_nsfb_map[] = {
     NSFB_KEY_UNKNOWN,
     NSFB_KEY_UNKNOWN,
@@ -360,7 +367,7 @@ enum nsfb_key_code_e x_nsfb_map[] = {
   int rloop, gloop, bloop;
   int loop = 0;
 
-  // build a linear R:3 G:3 B:2 colour cube palette. 
+  // build a linear R:3 G:3 B:2 colour cube palette.
   for (rloop = 0; rloop < 8; rloop++) {
   for (gloop = 0; gloop < 8; gloop++) {
   for (bloop = 0; bloop < 4; bloop++) {
@@ -375,7 +382,7 @@ enum nsfb_key_code_e x_nsfb_map[] = {
   }
   }
 
-  // Set palette 
+  // Set palette
   //X_SetColors(x_screen, palette, 0, 256);
 
   }
@@ -437,7 +444,7 @@ create_image(xcb_connection_t *c, int width, int height, int bpp)
         return NULL;
 
     /* doing it this way ensures we deal with bpp smaller than 8 */
-    image_size = (bpp * width * height) >> 3; 
+    image_size = (bpp * width * height) >> 3;
 
     image_data = calloc(1, image_size);
     if (image_data == NULL)
@@ -457,12 +464,43 @@ create_image(xcb_connection_t *c, int width, int height, int bpp)
                             image_data);
 }
 
+/**
+ * Create a blank cursor.
+ * The empty pixmaps is leaked.
+ *
+ * @param conn xcb connection
+ * @param scr xcb XCB screen
+ */
+static xcb_cursor_t
+create_blank_cursor(xcb_connection_t *conn, const xcb_screen_t *scr)
+{
+    xcb_cursor_t cur = xcb_generate_id(conn);
+    xcb_pixmap_t pix = xcb_generate_id(conn);
+    xcb_void_cookie_t ck;
+    xcb_generic_error_t *err;
+
+    ck = xcb_create_pixmap_checked (conn, 1, pix, scr->root, 1, 1);
+    err = xcb_request_check (conn, ck);
+    if (err) {
+        fprintf (stderr, "Cannot create pixmap: %d", err->error_code);
+        free (err);
+    }
+    ck = xcb_create_cursor_checked (conn, cur, pix, pix, 0, 0, 0, 0, 0, 0, 0, 0);
+    err = xcb_request_check (conn, ck);
+    if (err) {
+        fprintf (stderr, "Cannot create cursor: %d", err->error_code);
+        free (err);
+    }
+    return cur;
+}
+
 static int x_initialise(nsfb_t *nsfb)
 {
     uint32_t mask;
-    uint32_t values[2];
+    uint32_t values[3];
     xcb_size_hints_t *hints;
     xstate_t *xstate = nsfb->frontend_priv;
+    xcb_cursor_t blank_cursor;
 
     if (xstate != NULL)
         return -1; /* already initialised */
@@ -479,7 +517,7 @@ static int x_initialise(nsfb_t *nsfb)
     xstate->connection = xcb_connect (NULL, NULL);
     if (xstate->connection == NULL) {
         fprintf(stderr, "Unable to open display\n");
-        free(xstate);        
+        free(xstate);
     }
 
     /* get screen */
@@ -499,18 +537,23 @@ static int x_initialise(nsfb_t *nsfb)
     nsfb->ptr = xstate->image->data;
     nsfb->linelen = xstate->image->stride;
 
+    /* get blank cursor */
+    blank_cursor = create_blank_cursor(xstate->connection, xstate->screen);
+
     /* create window */
-    mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+    mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
     values[0] = xstate->screen->white_pixel;
-    values[1] = XCB_EVENT_MASK_EXPOSURE | 
-		XCB_EVENT_MASK_KEY_PRESS | 
+    values[1] = XCB_EVENT_MASK_EXPOSURE |
+		XCB_EVENT_MASK_KEY_PRESS |
 		XCB_EVENT_MASK_BUTTON_PRESS |
+                XCB_EVENT_MASK_BUTTON_RELEASE |
                 XCB_EVENT_MASK_POINTER_MOTION;
+    values[2] = blank_cursor;
 
     xstate->window = xcb_generate_id(xstate->connection);
-    xcb_create_window (xstate->connection, 
-                       XCB_COPY_FROM_PARENT, 
-                       xstate->window, 
+    xcb_create_window (xstate->connection,
+                       XCB_COPY_FROM_PARENT,
+                       xstate->window,
                        xstate->screen->root,
                        10, 10, xstate->image->width, xstate->image->height, 1,
                        XCB_WINDOW_CLASS_INPUT_OUTPUT,
@@ -569,46 +612,110 @@ static bool x_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     xcb_generic_event_t *e;
     xcb_expose_event_t *ee;
     xcb_motion_notify_event_t *emn;
+    xcb_button_press_event_t *ebp;
     xstate_t *xstate = nsfb->frontend_priv;
 
     if (xstate == NULL)
         return false;
 
-    if (timeout < 0)
+    if (timeout < 0) {
         e = xcb_wait_for_event(xstate->connection);
-    else
+        if (e == NULL) {
+            /* I/O error */
+            event->type = NSFB_EVENT_CONTROL;
+            event->value.controlcode = NSFB_CONTROL_QUIT;
+            return true;
+        }
+    } else {
         e = xcb_poll_for_event(xstate->connection);
-
-    /* Do nothing if there was no event */
-    if (e == NULL)
-        return false;
-
-    /* expose event is special and is not handled with the other events */    
-    if (e->response_type == XCB_EXPOSE) {
-        ee = (xcb_expose_event_t *)e;
-        xcb_copy_area(xstate->connection, 
-                      xstate->pmap, 
-                      xstate->window, 
-                      xstate->gc, 
-                      ee->x, ee->y, 
-                      ee->x, ee->y, 
-                      ee->width, ee->height);
-        xcb_flush (xstate->connection);    
-        return false;
+        /* Do nothing if there was no event */
+        if (e == NULL)
+            return false;
     }
-	
+
     event->type = NSFB_EVENT_NONE;
 
-	
     switch (e->response_type) {
+    case XCB_EXPOSE:
+        ee = (xcb_expose_event_t *)e;
+        xcb_copy_area(xstate->connection,
+                      xstate->pmap,
+                      xstate->window,
+                      xstate->gc,
+                      ee->x, ee->y,
+                      ee->x, ee->y,
+                      ee->width, ee->height);
+        xcb_flush (xstate->connection);
+        break;
+
     case XCB_MOTION_NOTIFY:
         emn = (xcb_motion_notify_event_t *)e;
-      event->type = NSFB_EVENT_MOVE_ABSOLUTE;
-      event->value.vector.x = emn->event_x;
-      event->value.vector.y = emn->event_y;
-      event->value.vector.z = 0;
+        event->type = NSFB_EVENT_MOVE_ABSOLUTE;
+        event->value.vector.x = emn->event_x;
+        event->value.vector.y = emn->event_y;
+        event->value.vector.z = 0;
         break;
+
+
+    case XCB_BUTTON_PRESS:
+        ebp = (xcb_button_press_event_t *)e;
+        event->type = NSFB_EVENT_KEY_DOWN;
+
+        switch (ebp->detail) {
+
+        case X_BUTTON_LEFT:
+            event->value.keycode = NSFB_KEY_MOUSE_1;
+            break;
+
+        case X_BUTTON_MIDDLE:
+            event->value.keycode = NSFB_KEY_MOUSE_2;
+            break;
+
+        case X_BUTTON_RIGHT:
+            event->value.keycode = NSFB_KEY_MOUSE_3;
+            break;
+
+        case X_BUTTON_WHEELUP:
+            event->value.keycode = NSFB_KEY_MOUSE_4;
+            break;
+
+        case X_BUTTON_WHEELDOWN:
+            event->value.keycode = NSFB_KEY_MOUSE_5;
+            break;
+        }
+        break;
+
+    case XCB_BUTTON_RELEASE:
+        ebp = (xcb_button_press_event_t *)e;
+        event->type = NSFB_EVENT_KEY_UP;
+
+        switch (ebp->detail) {
+
+        case X_BUTTON_LEFT:
+            event->value.keycode = NSFB_KEY_MOUSE_1;
+            break;
+
+        case X_BUTTON_MIDDLE:
+            event->value.keycode = NSFB_KEY_MOUSE_2;
+            break;
+
+        case X_BUTTON_RIGHT:
+            event->value.keycode = NSFB_KEY_MOUSE_3;
+            break;
+
+        case X_BUTTON_WHEELUP:
+            event->value.keycode = NSFB_KEY_MOUSE_4;
+            break;
+
+        case X_BUTTON_WHEELDOWN:
+            event->value.keycode = NSFB_KEY_MOUSE_5;
+            break;
+        }
+        break;
+
+
     }
+
     /*
       switch (sdlevent.type) {
       case X_KEYDOWN:
@@ -621,74 +728,12 @@ static bool x_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
       event->value.keycode = x_nsfb_map[sdlevent.key.keysym.sym];
       break;
 
-      case X_MOUSEBUTTONDOWN:
-      event->type = NSFB_EVENT_KEY_DOWN;
 
-      switch (sdlevent.button.button) {
-
-      case X_BUTTON_LEFT:
-      event->value.keycode = NSFB_KEY_MOUSE_1;
-      break;
-
-      case X_BUTTON_MIDDLE:
-      event->value.keycode = NSFB_KEY_MOUSE_2;
-      break;
-
-      case X_BUTTON_RIGHT:
-      event->value.keycode = NSFB_KEY_MOUSE_3;
-      break;
-
-      case X_BUTTON_WHEELUP:
-      event->value.keycode = NSFB_KEY_MOUSE_4;
-      break;
-
-      case X_BUTTON_WHEELDOWN:
-      event->value.keycode = NSFB_KEY_MOUSE_5;
-      break;
-      }
-      break;
-
-      case X_MOUSEBUTTONUP:
-      event->type = NSFB_EVENT_KEY_UP;
-
-      switch (sdlevent.button.button) {
-
-      case X_BUTTON_LEFT:
-      event->value.keycode = NSFB_KEY_MOUSE_1;
-      break;
-
-      case X_BUTTON_MIDDLE:
-      event->value.keycode = NSFB_KEY_MOUSE_2;
-      break;
-
-      case X_BUTTON_RIGHT:
-      event->value.keycode = NSFB_KEY_MOUSE_3;
-      break;
-
-      case X_BUTTON_WHEELUP:
-      event->value.keycode = NSFB_KEY_MOUSE_4;
-      break;
-
-      case X_BUTTON_WHEELDOWN:
-      event->value.keycode = NSFB_KEY_MOUSE_5;
-      break;
-      }
-      break;
-
-      case X_MOUSEMOTION:
-      event->type = NSFB_EVENT_MOVE_ABSOLUTE;
-      event->value.vector.x = sdlevent.motion.x;
-      event->value.vector.y = sdlevent.motion.y;
-      event->value.vector.z = 0;
-      break;
-
-      case X_QUIT:
-      event->type = NSFB_EVENT_CONTROL;
-      event->value.controlcode = NSFB_CONTROL_QUIT;
-      break;
 
       }
     */
+    free(e);
+
     return true;
 }
 
@@ -701,6 +746,33 @@ static int x_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
         (nsfb_plot_bbox_intersect(box, &cursor->loc))) {
         nsfb_cursor_clear(nsfb, cursor);
     }
+    return 0;
+}
+
+
+static int
+update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
+{
+    xcb_put_image(xstate->connection,
+                  xstate->image->format,
+                  xstate->pmap,
+                  xstate->gc,
+                  xstate->image->width,
+                  height,
+                  0,
+                  y,
+                  0,
+                  xstate->image->depth,
+                  (height) * xstate->image->stride,
+                  xstate->image->data + (y * xstate->image->stride));
+
+    xcb_copy_area(xstate->connection,
+                  xstate->pmap,
+                  xstate->window,
+                  xstate->gc,
+                  x, y,
+                  x, y,
+                  width, height);
     return 0;
 }
 
@@ -728,20 +800,9 @@ x_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
         nsfb_cursor_plot(nsfb, cursor);
 
         /* TODO: This is hediously ineficient - should keep the pointer image
-         * as a pixmap and plot server side 
+         * as a pixmap and plot server side
          */
-        xcb_image_put(xstate->connection, xstate->pmap, xstate->gc, xstate->image, 0, 0, 0);
-        xcb_copy_area(xstate->connection, 
-                      xstate->pmap, 
-                      xstate->window, 
-                      xstate->gc,                       
-                      redraw.x0,
-                      redraw.y0,
-                      redraw.x0,
-                      redraw.y0,
-                      redraw.x1 - redraw.x0,
-                      redraw.y1 - redraw.y0);
-
+        update_and_redraw_pixmap(xstate, redraw.x0, redraw.y0, redraw.x1 - redraw.x0, redraw.y1 - redraw.y0);
 
     }
     return true;
@@ -758,17 +819,9 @@ static int x_update(nsfb_t *nsfb, nsfb_bbox_t *box)
         nsfb_cursor_plot(nsfb, cursor);
     }
 
-    xcb_image_put(xstate->connection, xstate->pmap, xstate->gc, xstate->image, 0, 0, 0);
-    xcb_copy_area(xstate->connection, 
-                  xstate->pmap, 
-                  xstate->window, 
-                  xstate->gc,                       
-                  box->x0,
-                  box->y0,
-                  box->x0,
-                  box->y0,
-                  box->x1 - box->x0,
-                  box->y1 - box->y0);
+    update_and_redraw_pixmap(xstate, box->x0, box->y0, box->x1 - box->x0, box->y1 - box->y0);
+
+    xcb_flush(xstate->connection);
 
     return 0;
 }
