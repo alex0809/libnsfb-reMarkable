@@ -497,10 +497,15 @@ create_shm_image(xstate_t *xstate, int width, int height, int bpp)
 
     ck = xcb_shm_query_version(xstate->connection);
     rep = xcb_shm_query_version_reply(xstate->connection, ck , NULL);
-    if ((!rep) ||
-        (rep->major_version < 1) ||
-        (rep->major_version == 1 && rep->minor_version == 0)) {
-        fprintf (stderr, "No or insufficient shm support...\n");
+    if (!rep) {
+        fprintf (stderr, "Server has no shm support.\n");
+        return NULL;
+    }
+
+    if((rep->major_version < 1) || 
+       (rep->major_version == 1 && rep->minor_version == 0)) {
+        fprintf (stderr, "server SHM support is insufficient.\n");
+        free(rep);
         return NULL;
     }
     free(rep);
