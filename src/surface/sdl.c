@@ -445,7 +445,7 @@ static int sdl_initialise(nsfb_t *nsfb)
         return -1;
 
     /* initialise SDL library */
-    if (SDL_Init(SDL_INIT_VIDEO) < 0 ) {
+    if (SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO) < 0 ) {
         fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
         return -1;
     }
@@ -481,6 +481,22 @@ static int sdl_finalise(nsfb_t *nsfb)
     return 0;
 }
 
+static uint32_t wakeeventtimer(uint32_t ival, void *param)
+{
+    SDL_Event event;
+    ival = ival;
+    param = param;
+
+    event.type = SDL_USEREVENT;
+    event.user.code = 0;
+    event.user.data1 = 0;
+    event.user.data2 = 0;
+    
+    SDL_PushEvent(&event);
+
+    return 0;
+}
+
 static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
     int got_event;
@@ -488,10 +504,23 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 
     nsfb = nsfb; /* unused */
 
-    if (timeout < 0)
-        got_event = SDL_WaitEvent(&sdlevent);
-    else
+    if (timeout == 0) {
         got_event = SDL_PollEvent(&sdlevent);
+    }  else {
+        if (timeout > 0) {
+            /* setup wake timer to ensure the wait event below exits no later
+             * than when the timeout has occoured.
+             */
+            SDL_TimerID tid;
+            tid = SDL_AddTimer(timeout, wakeeventtimer, NULL);
+            got_event = SDL_WaitEvent(&sdlevent);
+            if ((got_event == 0) || (sdlevent.type != SDL_USEREVENT)) {
+                SDL_RemoveTimer(tid);
+            }
+        } else {
+        got_event = SDL_WaitEvent(&sdlevent);
+        }
+    }
 
     /* Do nothing if there was no event */
     if (got_event == 0)
