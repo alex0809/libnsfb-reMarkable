@@ -11,6 +11,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -419,7 +420,6 @@ enum nsfb_key_code_e x_nsfb_map[] = {
 
   }
 */
-
 static int
 update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
 {
@@ -453,6 +453,92 @@ update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
     return 0;
 }
 
+
+static bool 
+xcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
+{
+    xstate_t *xstate = nsfb->frontend_priv;
+    nsfb_bbox_t allbox;
+    struct nsfb_cursor_s *cursor = nsfb->cursor;
+    uint8_t *srcptr;
+    uint8_t *dstptr;
+    int srcx = srcbox->x0;
+    int srcy = srcbox->y0;
+    int dstx = dstbox->x0;
+    int dsty = dstbox->y0;
+    int width = dstbox->x1 - dstbox->x0;
+    int height = dstbox->y1 - dstbox->y0;
+    int hloop;
+
+    nsfb_plot_add_rect(srcbox, dstbox, &allbox);
+
+    /* clear the cursor if its within the region to be altered */
+    if ((cursor != NULL) &&
+        (cursor->plotted == true) &&
+        (nsfb_plot_bbox_intersect(&allbox, &cursor->loc))) {
+        nsfb_cursor_clear(nsfb, cursor);
+        update_and_redraw_pixmap(xstate, cursor->loc.x0, cursor->loc.y0, cursor->loc.x1 - cursor->loc.x0, cursor->loc.y1 - cursor->loc.y0);
+
+    }
+
+    /* copy the area on the server */
+    xcb_copy_area(xstate->connection,
+                  xstate->pmap,
+                  xstate->pmap,
+                  xstate->gc,
+                  srcbox->x0, srcbox->y0,
+                  dstbox->x0, dstbox->y0,
+                  srcbox->x1 - srcbox->x0, srcbox->y1 - srcbox->y0);
+
+     /* do the copy in teh local memory too */
+     srcptr = (nsfb->ptr +
+              (srcy * nsfb->linelen) +
+              ((srcx * nsfb->bpp) / 8));
+
+    dstptr = (nsfb->ptr +
+              (dsty * nsfb->linelen) +
+              ((dstx * nsfb->bpp) / 8));
+
+    if (width == nsfb->width) {
+        /* take shortcut and use memmove */
+        memmove(dstptr, srcptr, (width * height * nsfb->bpp) / 8);
+    } else {
+        if (srcy > dsty) {
+            for (hloop = height; hloop > 0; hloop--) {
+                memmove(dstptr, srcptr, (width * nsfb->bpp) / 8);
+                srcptr += nsfb->linelen;
+                dstptr += nsfb->linelen;
+            }
+        } else {
+            srcptr += height * nsfb->linelen;
+            dstptr += height * nsfb->linelen;
+            for (hloop = height; hloop > 0; hloop--) {
+                srcptr -= nsfb->linelen;
+                dstptr -= nsfb->linelen;
+                memmove(dstptr, srcptr, (width * nsfb->bpp) / 8);
+            }
+        }
+    }
+   
+    if ((cursor != NULL) && 
+        (cursor->plotted == false)) {
+        nsfb_cursor_plot(nsfb, cursor);
+    }
+
+    /* update the x window */
+    xcb_copy_area(xstate->connection,
+                  xstate->pmap,
+                  xstate->window,
+                  xstate->gc,
+                  dstx, dsty,
+                  dstx, dsty,
+                  width, height);
+
+    return true;
+
+}
+
+
 static int x_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
 {
     if (nsfb->frontend_priv != NULL)
@@ -464,6 +550,8 @@ static int x_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
 
     /* select default sw plotters for bpp */
     select_plotters(nsfb);
+
+    nsfb->plotter_fns->copy = xcopy;
 
     return 0;
 }
@@ -502,7 +590,7 @@ create_shm_image(xstate_t *xstate, int width, int height, int bpp)
         return NULL;
     }
 
-    if((rep->major_version < 1) || 
+    if ((rep->major_version < 1) || 
        (rep->major_version == 1 && rep->minor_version == 0)) {
         fprintf (stderr, "server SHM support is insufficient.\n");
         free(rep);
@@ -674,6 +762,7 @@ static int x_initialise(nsfb_t *nsfb)
     values[0] = xstate->screen->white_pixel;
     values[1] = XCB_EVENT_MASK_EXPOSURE |
 		XCB_EVENT_MASK_KEY_PRESS |
+		XCB_EVENT_MASK_KEY_RELEASE |
 		XCB_EVENT_MASK_BUTTON_PRESS |
                 XCB_EVENT_MASK_BUTTON_RELEASE |
                 XCB_EVENT_MASK_POINTER_MOTION;
@@ -743,6 +832,7 @@ static bool x_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     xcb_expose_event_t *ee;
     xcb_motion_notify_event_t *emn;
     xcb_button_press_event_t *ebp;
+    xcb_key_press_event_t *ekp;
     xstate_t *xstate = nsfb->frontend_priv;
 
     if (xstate == NULL)
@@ -844,24 +934,20 @@ static bool x_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
         break;
 
 
+    case XCB_KEY_PRESS:
+        ekp = (xcb_key_press_event_t *)e;
+        event->type = NSFB_EVENT_KEY_DOWN;
+        event->value.keycode = x_nsfb_map[ekp->detail];
+        break;
+
+    case XCB_KEY_RELEASE:
+        ekp = (xcb_key_press_event_t *)e;
+        event->type = NSFB_EVENT_KEY_UP;
+        event->value.keycode = x_nsfb_map[ekp->detail];
+        break;
+
     }
 
-    /*
-      switch (sdlevent.type) {
-      case X_KEYDOWN:
-      event->type = NSFB_EVENT_KEY_DOWN;
-      event->value.keycode = x_nsfb_map[sdlevent.key.keysym.sym];
-      break;
-
-      case X_KEYUP:
-      event->type = NSFB_EVENT_KEY_UP;
-      event->value.keycode = x_nsfb_map[sdlevent.key.keysym.sym];
-      break;
-
-
-
-      }
-    */
     free(e);
 
     return true;
