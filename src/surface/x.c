@@ -21,6 +21,7 @@
 #include <xcb/xcb_atom.h>
 #include <xcb/xcb_icccm.h>
 #include <xcb/xcb_aux.h>
+#include <xcb/xcb_keysyms.h>
 
 #include "libnsfb.h"
 #include "libnsfb_event.h"
@@ -55,6 +56,7 @@ xcb_free_size_hints(xcb_size_hints_t *hints)
 typedef struct xstate_s {
     xcb_connection_t *connection; /* The x server connection */
     xcb_screen_t *screen; /* The screen to put the window on */
+    xcb_key_symbols_t *keysymbols; /* keysym mappings */ 
 
     xcb_shm_segment_info_t shminfo;
 
@@ -66,332 +68,324 @@ typedef struct xstate_s {
     xcb_shm_seg_t segment; /* The handle to the image shared memory */
 } xstate_t;
 
-enum nsfb_key_code_e x_nsfb_map[] = {
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_BACKSPACE,
-    NSFB_KEY_TAB,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_CLEAR,
-    NSFB_KEY_RETURN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_PAUSE,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_ESCAPE,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_SPACE,
-    NSFB_KEY_EXCLAIM,
-    NSFB_KEY_QUOTEDBL,
-    NSFB_KEY_HASH,
-    NSFB_KEY_DOLLAR,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_AMPERSAND,
-    NSFB_KEY_QUOTE,
-    NSFB_KEY_LEFTPAREN,
-    NSFB_KEY_RIGHTPAREN,
-    NSFB_KEY_ASTERISK,
-    NSFB_KEY_PLUS,
-    NSFB_KEY_COMMA,
-    NSFB_KEY_MINUS,
-    NSFB_KEY_PERIOD,
-    NSFB_KEY_SLASH,
-    NSFB_KEY_0,
-    NSFB_KEY_1,
-    NSFB_KEY_2,
-    NSFB_KEY_3,
-    NSFB_KEY_4,
-    NSFB_KEY_5,
-    NSFB_KEY_6,
-    NSFB_KEY_7,
-    NSFB_KEY_8,
-    NSFB_KEY_9,
-    NSFB_KEY_COLON,
-    NSFB_KEY_SEMICOLON,
-    NSFB_KEY_LESS,
-    NSFB_KEY_EQUALS,
-    NSFB_KEY_GREATER,
-    NSFB_KEY_QUESTION,
-    NSFB_KEY_AT,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_LEFTBRACKET,
-    NSFB_KEY_BACKSLASH,
-    NSFB_KEY_RIGHTBRACKET,
-    NSFB_KEY_CARET,
-    NSFB_KEY_UNDERSCORE,
-    NSFB_KEY_BACKQUOTE,
-    NSFB_KEY_a,
-    NSFB_KEY_b,
-    NSFB_KEY_c,
-    NSFB_KEY_d,
-    NSFB_KEY_e,
-    NSFB_KEY_f,
-    NSFB_KEY_g,
-    NSFB_KEY_h,
-    NSFB_KEY_i,
-    NSFB_KEY_j,
-    NSFB_KEY_k,
-    NSFB_KEY_l,
-    NSFB_KEY_m,
-    NSFB_KEY_n,
-    NSFB_KEY_o,
-    NSFB_KEY_p,
-    NSFB_KEY_q,
-    NSFB_KEY_r,
-    NSFB_KEY_s,
-    NSFB_KEY_t,
-    NSFB_KEY_u,
-    NSFB_KEY_v,
-    NSFB_KEY_w,
-    NSFB_KEY_x,
-    NSFB_KEY_y,
-    NSFB_KEY_z,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_DELETE,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_KP0,
-    NSFB_KEY_KP1,
-    NSFB_KEY_KP2,
-    NSFB_KEY_KP3,
-    NSFB_KEY_KP4,
-    NSFB_KEY_KP5,
-    NSFB_KEY_KP6,
-    NSFB_KEY_KP7,
-    NSFB_KEY_KP8,
-    NSFB_KEY_KP9,
-    NSFB_KEY_KP_PERIOD,
-    NSFB_KEY_KP_DIVIDE,
-    NSFB_KEY_KP_MULTIPLY,
-    NSFB_KEY_KP_MINUS,
-    NSFB_KEY_KP_PLUS,
-    NSFB_KEY_KP_ENTER,
-    NSFB_KEY_KP_EQUALS,
-    NSFB_KEY_UP,
-    NSFB_KEY_DOWN,
-    NSFB_KEY_RIGHT,
-    NSFB_KEY_LEFT,
-    NSFB_KEY_INSERT,
-    NSFB_KEY_HOME,
-    NSFB_KEY_END,
-    NSFB_KEY_PAGEUP,
-    NSFB_KEY_PAGEDOWN,
-    NSFB_KEY_F1,
-    NSFB_KEY_F2,
-    NSFB_KEY_F3,
-    NSFB_KEY_F4,
-    NSFB_KEY_F5,
-    NSFB_KEY_F6,
-    NSFB_KEY_F7,
-    NSFB_KEY_F8,
-    NSFB_KEY_F9,
-    NSFB_KEY_F10,
-    NSFB_KEY_F11,
-    NSFB_KEY_F12,
-    NSFB_KEY_F13,
-    NSFB_KEY_F14,
-    NSFB_KEY_F15,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_UNKNOWN,
-    NSFB_KEY_NUMLOCK,
-    NSFB_KEY_CAPSLOCK,
-    NSFB_KEY_SCROLLOCK,
-    NSFB_KEY_RSHIFT,
-    NSFB_KEY_LSHIFT,
-    NSFB_KEY_RCTRL,
-    NSFB_KEY_LCTRL,
-    NSFB_KEY_RALT,
-    NSFB_KEY_LALT,
-    NSFB_KEY_RMETA,
-    NSFB_KEY_LMETA,
-    NSFB_KEY_LSUPER,
-    NSFB_KEY_RSUPER,
-    NSFB_KEY_MODE,
-    NSFB_KEY_COMPOSE,
-    NSFB_KEY_HELP,
-    NSFB_KEY_PRINT,
-    NSFB_KEY_SYSREQ,
-    NSFB_KEY_BREAK,
-    NSFB_KEY_MENU,
-    NSFB_KEY_POWER,
-    NSFB_KEY_EURO,
-    NSFB_KEY_UNDO,
+/* X keyboard codepage to nsfb mapping*/
+enum nsfb_key_code_e XCSKeyboardMap[256] = {
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_BACKSPACE, /* XK_BackSpace */
+    NSFB_KEY_TAB, /* XK_Tab */
+    NSFB_KEY_UNKNOWN, /* XK_Linefeed */
+    NSFB_KEY_CLEAR, /* XK_Clear */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_RETURN, /* XK_Return */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0x10 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_PAUSE, /* XK_Pause */
+    NSFB_KEY_UNKNOWN, /* XK_Scroll_Lock */
+    NSFB_KEY_UNKNOWN, /* XK_Sys_Req */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_ESCAPE, /* XK_Escape */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0x20 */
+    NSFB_KEY_UNKNOWN, /* XK_Multi_key */
+    NSFB_KEY_UNKNOWN, /* XK_Kanji */
+    NSFB_KEY_UNKNOWN, /* XK_Muhenkan */
+    NSFB_KEY_UNKNOWN, /* XK_Henkan_Mode */
+    NSFB_KEY_UNKNOWN, /* XK_Henkan */
+    NSFB_KEY_UNKNOWN, /* XK_Romaji */
+    NSFB_KEY_UNKNOWN, /* XK_Hiragana*/
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0x30 */
+    NSFB_KEY_UNKNOWN, /* XK_Eisu_toggle */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* XK_Codeinput */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* XK_SingleCandidate */
+    NSFB_KEY_UNKNOWN, /* XK_MultipleCandidate */
+    NSFB_KEY_UNKNOWN, /* XK_PreviousCandidate */
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0x40 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0x50 */
+    NSFB_KEY_HOME, /* XK_Home */
+    NSFB_KEY_LEFT, /* XK_Left */
+    NSFB_KEY_UP, /* XK_Up */
+    NSFB_KEY_RIGHT, /* XK_Right */
+    NSFB_KEY_DOWN, /* XK_Down */
+    NSFB_KEY_PAGEUP, /* XK_Page_Up */
+    NSFB_KEY_PAGEDOWN, /* XK_Page_Down */
+    NSFB_KEY_END, /* XK_End */
+    NSFB_KEY_UNKNOWN, /* XK_Begin */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0x60 */
+    NSFB_KEY_UNKNOWN, /* XK_Select */
+    NSFB_KEY_UNKNOWN, /* XK_Print*/
+    NSFB_KEY_UNKNOWN, /* XK_Execute*/
+    NSFB_KEY_UNKNOWN, /* XK_Insert*/
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* XK_Undo*/
+    NSFB_KEY_UNKNOWN, /* XK_Redo */
+    NSFB_KEY_UNKNOWN, /* XK_Menu */
+    NSFB_KEY_UNKNOWN, /* XK_Find */
+    NSFB_KEY_UNKNOWN, /* XK_Cancel */
+    NSFB_KEY_UNKNOWN, /* XK_Help */
+    NSFB_KEY_UNKNOWN, /* XK_Break*/
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0x70 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* XK_Mode_switch */
+    NSFB_KEY_UNKNOWN, /* XK_Num_Lock */
+    /* 0x80 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_Space */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* XK_KP_Tab */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* XK_KP_Enter */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0x90 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* XK_KP_F1*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_F2*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_F3*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_F4*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Home*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Left*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Up*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Right*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Down*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Page_Up*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Page_Down*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_End*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Begin*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Insert*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Delete*/
+    /* 0xa0 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* XK_KP_Multiply*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Add*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Separator*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Subtract*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Decimal*/
+    NSFB_KEY_UNKNOWN, /* XK_KP_Divide*/
+    /* 0xb0 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_0 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_1 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_2 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_3 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_4 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_5 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_6 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_7 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_8 */
+    NSFB_KEY_UNKNOWN, /* XK_KP_9 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_F1, /* XK_F1 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* XK_KP_Equal */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_F2, /* XK_F2 */
+    /* 0xc0 */
+    NSFB_KEY_F3, /* XK_F3*/
+    NSFB_KEY_F4, /* XK_F4*/
+    NSFB_KEY_F5, /* XK_F5*/
+    NSFB_KEY_F6, /* XK_F6*/
+    NSFB_KEY_F7, /* XK_F7*/
+    NSFB_KEY_F8, /* XK_F8*/
+    NSFB_KEY_F9, /* XK_F9*/
+    NSFB_KEY_F10, /* XK_F10*/
+    NSFB_KEY_F11, /* XK_F11*/
+    NSFB_KEY_F12, /* XK_F12*/
+    NSFB_KEY_F13, /* XK_F13 */
+    NSFB_KEY_F14, /* XK_F14 */
+    NSFB_KEY_F15, /* XK_F15 */
+    NSFB_KEY_UNKNOWN, /* XK_F16 */
+    NSFB_KEY_UNKNOWN, /* XK_F17 */
+    NSFB_KEY_UNKNOWN, /* XK_F18*/
+    /* 0xd0 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0xe0 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_LSHIFT, /* XK_Shift_L*/
+    NSFB_KEY_RSHIFT, /* XK_Shift_R*/
+    NSFB_KEY_UNKNOWN, /* XK_Control_L*/
+    NSFB_KEY_UNKNOWN, /* XK_Control_R*/
+    NSFB_KEY_UNKNOWN, /* XK_Caps_Lock*/
+    NSFB_KEY_UNKNOWN, /* XK_Shift_Lock*/
+    NSFB_KEY_UNKNOWN, /* XK_Meta_L*/
+    NSFB_KEY_UNKNOWN, /* XK_Meta_R*/
+    NSFB_KEY_UNKNOWN, /* XK_Alt_L */
+    NSFB_KEY_UNKNOWN, /* XK_Alt_R*/
+    NSFB_KEY_UNKNOWN, /* XK_Super_L*/
+    NSFB_KEY_UNKNOWN, /* XK_Super_R*/
+    NSFB_KEY_UNKNOWN, /* XK_Hyper_L*/
+    NSFB_KEY_UNKNOWN, /* XK_Hyper_R*/
+    NSFB_KEY_UNKNOWN, /* */
+    /* 0xf0 */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
+    NSFB_KEY_UNKNOWN, /* */
 };
 
+/* Convert an X keysym into a nsfb key code.
+ *
+ * Our approach is primarily to assume both codings are roughly ascii like.
+ *
+ * The Keysyms are defined in X11/keysymdef.h and our mapping for the
+ * "keyboard" keys i.e. those from code set 255 is from there
+ */
+static enum nsfb_key_code_e
+xkeysym_to_nsfbkeycode(xcb_keysym_t ks)
+{
+    enum nsfb_key_code_e nsfb_key = NSFB_KEY_UNKNOWN;
+    uint8_t codeset = (ks & 0xFF00) >> 8;
+    uint8_t chrcode = ks & 0xFF;
+
+    if (ks != XCB_NO_SYMBOL) {
+        
+        switch (codeset) {
+        case 0x00: /* Latin 1 */
+        case 0x01: /* Latin 2 */
+        case 0x02: /* Latin 3 */
+        case 0x03: /* Latin 4 */
+        case 0x04: /* Katakana */
+        case 0x05: /* Arabic */
+        case 0x06: /* Cyrillic */
+        case 0x07: /* Greek */
+        case 0x08: /* Technical */
+        case 0x0A: /* Publishing */
+        case 0x0C: /* Hebrew */
+        case 0x0D: /* Thai */
+            /* this is somewhat incomplete, but the nsfb codes are lined up on
+             * the ascii codes and x seems to have done similar 
+             */
+            nsfb_key = (enum nsfb_key_code_e)chrcode;
+            break;
+
+        case 0xFF: /* Keyboard */
+            nsfb_key = XCSKeyboardMap[chrcode];
+            break;
+        }
+    }
+
+    return nsfb_key;
+}
 /*
   static void
   set_palette(nsfb_t *nsfb)
@@ -788,6 +782,9 @@ static int x_initialise(nsfb_t *nsfb)
     /* get blank cursor */
     blank_cursor = create_blank_cursor(xstate->connection, xstate->screen);
 
+    /* get keysymbol maps */
+    xstate->keysymbols = xcb_key_symbols_alloc(xstate->connection);
+
     /* create window */
     mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK | XCB_CW_CURSOR;
     values[0] = xstate->screen->white_pixel;
@@ -848,6 +845,8 @@ static int x_finalise(nsfb_t *nsfb)
     if (xstate == NULL)
         return 0;
 
+    xcb_key_symbols_free(xstate->keysymbols);
+
     /* free pixmap */
     xcb_free_pixmap(xstate->connection, xstate->pmap);
 
@@ -864,6 +863,7 @@ static bool x_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     xcb_motion_notify_event_t *emn;
     xcb_button_press_event_t *ebp;
     xcb_key_press_event_t *ekp;
+    xcb_key_press_event_t *ekr;
     xstate_t *xstate = nsfb->frontend_priv;
 
     if (xstate == NULL)
@@ -992,13 +992,13 @@ static bool x_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     case XCB_KEY_PRESS:
         ekp = (xcb_key_press_event_t *)e;
         event->type = NSFB_EVENT_KEY_DOWN;
-        event->value.keycode = x_nsfb_map[ekp->detail];
+        event->value.keycode = xkeysym_to_nsfbkeycode(xcb_key_symbols_get_keysym(xstate->keysymbols, ekp->detail, 0));
         break;
 
     case XCB_KEY_RELEASE:
-        ekp = (xcb_key_press_event_t *)e;
+        ekr = (xcb_key_release_event_t *)e;
         event->type = NSFB_EVENT_KEY_UP;
-        event->value.keycode = x_nsfb_map[ekp->detail];
+        event->value.keycode = xkeysym_to_nsfbkeycode(xcb_key_symbols_get_keysym(xstate->keysymbols, ekr->detail, 0));
         break;
 
     }
