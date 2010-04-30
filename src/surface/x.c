@@ -20,6 +20,7 @@
 #include <xcb/xcb_image.h>
 #include <xcb/xcb_atom.h>
 #include <xcb/xcb_icccm.h>
+#include <xcb/xcb_aux.h>
 
 #include "libnsfb.h"
 #include "libnsfb_event.h"
@@ -421,7 +422,7 @@ enum nsfb_key_code_e x_nsfb_map[] = {
   }
 */
 static int
-update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
+update_pixmap(xstate_t *xstate, int x, int y, int width, int height)
 {
     if (xstate->shminfo.shmseg == 0) {
         /* not using shared memory */
@@ -439,9 +440,23 @@ update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
                       xstate->image->data + (y * xstate->image->stride));
     } else {
         /* shared memory */
-        xcb_image_shm_put(xstate->connection, xstate->pmap, xstate->gc, xstate->image, xstate->shminfo, x,y,x,y,width,height,0);
-        xcb_flush(xstate->connection);
+        xcb_image_shm_put(xstate->connection, 
+                          xstate->pmap, 
+                          xstate->gc, 
+                          xstate->image, 
+                          xstate->shminfo, 
+                          x,y,
+                          x,y,
+                          width,height,0);
     }
+
+    return 0;
+}
+
+static int
+update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
+{
+    update_pixmap(xstate, x, y, width, height);
 
     xcb_copy_area(xstate->connection,
                   xstate->pmap,
@@ -450,6 +465,9 @@ update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
                   x, y,
                   x, y,
                   width, height);
+
+    xcb_flush(xstate->connection);
+
     return 0;
 }
 
@@ -476,8 +494,18 @@ xcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
     if ((cursor != NULL) &&
         (cursor->plotted == true) &&
         (nsfb_plot_bbox_intersect(&allbox, &cursor->loc))) {
+
         nsfb_cursor_clear(nsfb, cursor);
-        update_and_redraw_pixmap(xstate, cursor->loc.x0, cursor->loc.y0, cursor->loc.x1 - cursor->loc.x0, cursor->loc.y1 - cursor->loc.y0);
+        update_pixmap(xstate, 
+                      cursor->savloc.x0, 
+                      cursor->savloc.y0, 
+                      cursor->savloc.x1 - cursor->savloc.x0, 
+                      cursor->savloc.y1 - cursor->savloc.y0);
+
+        /* must sync here or local framebuffer and remote pixmap will not be
+         * consistant 
+         */
+        xcb_aux_sync(xstate->connection); 
 
     }
 
@@ -486,9 +514,12 @@ xcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
                   xstate->pmap,
                   xstate->pmap,
                   xstate->gc,
-                  srcbox->x0, srcbox->y0,
-                  dstbox->x0, dstbox->y0,
-                  srcbox->x1 - srcbox->x0, srcbox->y1 - srcbox->y0);
+                  srcbox->x0, 
+                  srcbox->y0,
+                  dstbox->x0, 
+                  dstbox->y0,
+                  srcbox->x1 - srcbox->x0, 
+                  srcbox->y1 - srcbox->y0);
 
     /* do the copy in the local memory too */
     srcptr = (nsfb->ptr +
@@ -1035,8 +1066,6 @@ static int x_update(nsfb_t *nsfb, nsfb_bbox_t *box)
     }
 
     update_and_redraw_pixmap(xstate, box->x0, box->y0, box->x1 - box->x0, box->y1 - box->y0);
-
-    xcb_flush(xstate->connection);
 
     return 0;
 }
