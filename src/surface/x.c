@@ -454,7 +454,7 @@ update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
 }
 
 
-static bool 
+static bool
 xcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 {
     xstate_t *xstate = nsfb->frontend_priv;
@@ -490,8 +490,8 @@ xcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
                   dstbox->x0, dstbox->y0,
                   srcbox->x1 - srcbox->x0, srcbox->y1 - srcbox->y0);
 
-     /* do the copy in teh local memory too */
-     srcptr = (nsfb->ptr +
+    /* do the copy in the local memory too */
+    srcptr = (nsfb->ptr +
               (srcy * nsfb->linelen) +
               ((srcx * nsfb->bpp) / 8));
 
@@ -519,8 +519,8 @@ xcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
             }
         }
     }
-   
-    if ((cursor != NULL) && 
+
+    if ((cursor != NULL) &&
         (cursor->plotted == false)) {
         nsfb_cursor_plot(nsfb, cursor);
     }
@@ -590,8 +590,8 @@ create_shm_image(xstate_t *xstate, int width, int height, int bpp)
         return NULL;
     }
 
-    if ((rep->major_version < 1) || 
-       (rep->major_version == 1 && rep->minor_version == 0)) {
+    if ((rep->major_version < 1) ||
+        (rep->major_version == 1 && rep->minor_version == 0)) {
         fprintf (stderr, "server SHM support is insufficient.\n");
         free(rep);
         return NULL;
@@ -838,19 +838,43 @@ static bool x_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     if (xstate == NULL)
         return false;
 
-    if (timeout < 0) {
+    xcb_flush(xstate->connection);
+
+    /* try and retrive an event immediately */
+    e = xcb_poll_for_event(xstate->connection);
+
+    if ((e == NULL) && (timeout != 0)) {
+        if (timeout > 0) {
+            int confd;
+            fd_set rfds;
+            struct timeval tv;
+            int retval;
+
+            confd = xcb_get_file_descriptor(xstate->connection);
+            FD_ZERO(&rfds);
+            FD_SET(confd, &rfds);
+
+            tv.tv_sec = timeout / 1000;
+            tv.tv_usec = timeout % 1000;
+
+            retval = select(confd + 1, &rfds, NULL, NULL, &tv);
+            if (retval == 0) {
+                return false; /* timeout, nothing happened */
+
+            }
+        }
         e = xcb_wait_for_event(xstate->connection);
-        if (e == NULL) {
-            /* I/O error */
+    }
+
+    if (e == NULL) {
+        if (xcb_connection_has_error(xstate->connection) != 0) {
+            /* connection closed quiting time */
             event->type = NSFB_EVENT_CONTROL;
             event->value.controlcode = NSFB_CONTROL_QUIT;
             return true;
+        } else {
+            return false; /* no event */
         }
-    } else {
-        e = xcb_poll_for_event(xstate->connection);
-        /* Do nothing if there was no event */
-        if (e == NULL)
-            return false;
     }
 
     event->type = NSFB_EVENT_NONE;
