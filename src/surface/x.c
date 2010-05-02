@@ -588,10 +588,11 @@ find_format(xcb_connection_t * c, uint8_t depth, uint8_t bpp)
     const xcb_setup_t *setup = xcb_get_setup(c);
     xcb_format_t *fmt = xcb_setup_pixmap_formats(setup);
     xcb_format_t *fmtend = fmt + xcb_setup_pixmap_formats_length(setup);
-    for(; fmt != fmtend; ++fmt)
+    for(; fmt != fmtend; ++fmt) {
         if((fmt->depth == depth) && (fmt->bits_per_pixel == bpp)) {
             return fmt;
         }
+    }
     return 0;
 }
 
@@ -607,6 +608,8 @@ create_shm_image(xstate_t *xstate, int width, int height, int bpp)
 
     xcb_shm_query_version_reply_t *rep;
     xcb_shm_query_version_cookie_t ck;
+    xcb_void_cookie_t shm_attach_cookie;
+    xcb_generic_error_t *generic_error;
 
     ck = xcb_shm_query_version(xstate->connection);
     rep = xcb_shm_query_version_reply(xstate->connection, ck , NULL);
@@ -617,7 +620,7 @@ create_shm_image(xstate_t *xstate, int width, int height, int bpp)
 
     if ((rep->major_version < 1) ||
         (rep->major_version == 1 && rep->minor_version == 0)) {
-        fprintf (stderr, "server SHM support is insufficient.\n");
+        fprintf(stderr, "server SHM support is insufficient.\n");
         free(rep);
         return NULL;
     }
@@ -639,15 +642,31 @@ create_shm_image(xstate_t *xstate, int width, int height, int bpp)
         return NULL;
 
     xstate->shminfo.shmid = shmid;
+
     xstate->shminfo.shmaddr = shmat(xstate->shminfo.shmid, 0, 0);
     image_data = xstate->shminfo.shmaddr;
 
     xstate->shminfo.shmseg = xcb_generate_id(xstate->connection);
-    xcb_shm_attach(xstate->connection,
-                   xstate->shminfo.shmseg,
-                   xstate->shminfo.shmid, 0);
+    shm_attach_cookie = xcb_shm_attach_checked(xstate->connection,
+					       xstate->shminfo.shmseg,
+					       xstate->shminfo.shmid, 
+					       0);
+    generic_error = xcb_request_check(xstate->connection, shm_attach_cookie);
 
+    /* either there is an error and the shm us no longer needed, or it now
+     * belongs to the x server - regardless release local reference to shared
+     * memory segment
+     */
     shmctl(xstate->shminfo.shmid, IPC_RMID, 0);
+
+    if (generic_error != NULL) {
+        /* unable to attach shm */
+        xstate->shminfo.shmseg = 0;
+
+        free(generic_error);
+        return NULL;
+    }
+
 
     return xcb_image_create(width,
                             height,
@@ -752,10 +771,17 @@ static int x_initialise(nsfb_t *nsfb)
         return -1; /* no memory */
 
     /* open connection with the server */
-    xstate->connection = xcb_connect (NULL, NULL);
+    xstate->connection = xcb_connect(NULL, NULL);
     if (xstate->connection == NULL) {
-        fprintf(stderr, "Unable to open display\n");
+        fprintf(stderr, "Memory error opening display\n");
         free(xstate);
+        return -1; /* no memory */	
+    }
+
+    if (xcb_connection_has_error(xstate->connection) != 0) {
+        fprintf(stderr, "Error opening display\n");
+        free(xstate);
+        return -1; /* no memory */	
     }
 
     /* get screen */
@@ -801,7 +827,7 @@ static int x_initialise(nsfb_t *nsfb)
                        XCB_COPY_FROM_PARENT,
                        xstate->window,
                        xstate->screen->root,
-                       10, 10, xstate->image->width, xstate->image->height, 1,
+                       0, 0, xstate->image->width, xstate->image->height, 1,
                        XCB_WINDOW_CLASS_INPUT_OUTPUT,
                        xstate->screen->root_visual,
                        mask, values);
