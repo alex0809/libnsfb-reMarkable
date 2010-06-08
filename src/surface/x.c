@@ -7,6 +7,7 @@
  */
 
 #define _XOPEN_SOURCE 500
+#define NEED_HINTS_ALLOC
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -34,13 +35,13 @@
 #include "cursor.h"
 
 #if defined(NEED_HINTS_ALLOC)
-xcb_size_hints_t *
+static xcb_size_hints_t *
 xcb_alloc_size_hints(void)
 {
     return calloc(1, sizeof(xcb_size_hints_t));
 }
 
-void
+static void
 xcb_free_size_hints(xcb_size_hints_t *hints)
 {
     free(hints);
