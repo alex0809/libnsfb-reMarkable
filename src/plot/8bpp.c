@@ -316,7 +316,7 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 	int rheight, rwidth; /* post-clipping render area dimensions */
 	int dx, dy; /* scale factor (integer part) */
 	int dxr, dyr; /* scale factor (remainder) */
-	int rx, ry; /* remainder trackers */
+	int rx, ry, rxs; /* remainder trackers */
 	nsfb_bbox_t clipped; /* clipped display */
 
 	/* The part of the scaled image actually displayed is cropped to the
@@ -342,17 +342,29 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 	else
 		rwidth = width;
 
-	/* start offsets to part of image being scaled, after clipping */
-	xoffs = ((clipped.x0 - x) * bmp_width) / width;
-	yoff = (((clipped.y0 - y) * bmp_height) / height) * bmp_stride;
-
 	/* get veritcal (y) and horizontal (x) scale factors; both integer
 	 * part and remainder */
 	dx = bmp_width / width;
 	dy = (bmp_height / height) * bmp_stride;
 	dxr = bmp_width % width;
 	dyr = bmp_height % height;
-	rx = ry = 0; /* initialise remainder counters */
+
+	/* get start offsets to part of image being scaled, after clipping and
+	 * set remainder trackers to correct starting */
+	if (clipped.x0 - x != 0) {
+		xoffs = ((clipped.x0 - x) * bmp_width) / width;
+		rxs = ((clipped.x0 - x) * bmp_width) % width;
+	} else {
+		xoffs = 0;
+		rxs = 0;
+	}
+	if (clipped.y0 - y != 0) {
+		yoff = (((clipped.y0 - y) * bmp_height) / height) * bmp_stride;
+		ry = ((clipped.y0 - y) * bmp_height) % height;
+	} else {
+		yoff = 0;
+		ry = 0;
+	}
 
 	/* plot the image */
 	pvideo = get_xy_loc(nsfb, clipped.x0, clipped.y0);
@@ -361,7 +373,7 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 		for (; pvideo < pvideo_limit; pvideo += (nsfb->linelen)) {
 			/* looping through render area vertically */
 			xoff = xoffs;
-			rx = 0;
+			rx = rxs;
 			for (xloop = 0; xloop < rwidth; xloop++) {
 				/* looping through render area horizontally */
 				/* get value of source pixel in question */
