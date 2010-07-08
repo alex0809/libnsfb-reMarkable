@@ -373,7 +373,7 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 	dyr = bmp_height % height;
 
 	/* get start offsets to part of image being scaled, after clipping and
-	 * set remainder trackers to correct starting */
+	 * set remainder trackers to correct starting value */
 	if (clipped.x0 - x != 0) {
 		xoffs = ((clipped.x0 - x) * bmp_width) / width;
 		rxs = ((clipped.x0 - x) * bmp_width) % width;
@@ -438,7 +438,7 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 		for (; pvideo < pvideo_limit; pvideo += (nsfb->linelen >> 1)) {
 			/* looping through render area vertically */
 			xoff = xoffs;
-			rx = 0;
+			rx = rxs;
 			for (xloop = 0; xloop < rwidth; xloop++) {
 				/* looping through render area horizontally */
 				/* get value of source pixel in question */
