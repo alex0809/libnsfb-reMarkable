@@ -327,7 +327,7 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 		int bmp_stride, bool alpha)
 {
 	uint32_t *pvideo, *pvideo_limit;
-	nsfb_colour_t abpixel = 0; /* alphablended pixel */
+	nsfb_colour_t abpixel; /* alphablended pixel */
 	int xloop;
 	int xoff, yoff, xoffs; /* x and y offsets into image */
 	int x = loc->x0;
@@ -348,9 +348,8 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 	clipped.x1 = x + width;
 	clipped.y1 = y + height;
 
-	if (!nsfb_plot_clip_ctx(nsfb, &clipped)) {
+	if (!nsfb_plot_clip_ctx(nsfb, &clipped))
 		return true;
-	}
 
 	/* get height of rendering region, after clipping */
 	if (height > (clipped.y1 - clipped.y0))
@@ -389,12 +388,12 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 				/* get value of source pixel in question */
 				abpixel = pixel[yoff + xoff];
 				if ((abpixel & 0xFF000000) != 0) {
-                                	/* pixel is not transparent; have to
-                                	 * plot something */
+					/* pixel is not transparent; have to
+					 * plot something */
 					if ((abpixel & 0xFF000000) !=
 							0xFF000000) {
-                                        	/* pixel is not opaque; need to
-                                        	 * blend */
+						/* pixel is not opaque; need to
+						 * blend */
 						abpixel = nsfb_plot_ablend(
 								abpixel,
 								pixel_to_colour(
@@ -463,7 +462,7 @@ bitmap(nsfb_t *nsfb,
        bool alpha)
 {
         uint32_t *pvideo;
-        nsfb_colour_t abpixel = 0; /* alphablended pixel */
+        nsfb_colour_t abpixel; /* alphablended pixel */
         int xloop, yloop;
         int xoff, yoff; /* x and y offset into image */
         int x = loc->x0;
@@ -485,9 +484,8 @@ bitmap(nsfb_t *nsfb,
         clipped.x1 = x + width;
         clipped.y1 = y + height;
 
-        if (!nsfb_plot_clip_ctx(nsfb, &clipped)) {
+        if (!nsfb_plot_clip_ctx(nsfb, &clipped))
                 return true;
-        }
 
         if (height > (clipped.y1 - clipped.y0))
                 height = (clipped.y1 - clipped.y0);
