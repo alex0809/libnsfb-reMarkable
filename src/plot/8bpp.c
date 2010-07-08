@@ -452,6 +452,9 @@ bitmap(nsfb_t *nsfb,
         int height = loc->y1 - loc->y0;
         nsfb_bbox_t clipped; /* clipped display */
 
+	if (width == 0 || height == 0)
+		return true;
+
         /* Scaled bitmaps are handled by a separate function */
         if (width != bmp_width || height != bmp_height)
                 return bitmap_scaled(nsfb, loc, pixel, bmp_width, bmp_height,
