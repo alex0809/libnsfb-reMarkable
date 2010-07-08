@@ -323,6 +323,136 @@ glyph8(nsfb_t *nsfb,
         return true;
 }
 
+static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
+		const nsfb_colour_t *pixel, int bmp_width, int bmp_height,
+		int bmp_stride, bool alpha)
+{
+	uint16_t *pvideo, *pvideo_limit;
+	nsfb_colour_t abpixel; /* alphablended pixel */
+	int xloop;
+	int xoff, yoff, xoffs; /* x and y offsets into image */
+	int x = loc->x0;
+	int y = loc->y0;
+	int width = loc->x1 - loc->x0; /* size to scale to */
+	int height = loc->y1 - loc->y0; /* size to scale to */
+	int rheight, rwidth; /* post-clipping render area dimensions */
+	int dx, dy; /* scale factor (integer part) */
+	int dxr, dyr; /* scale factor (remainder) */
+	int rx, ry; /* remainder trackers */
+	nsfb_bbox_t clipped; /* clipped display */
+
+	/* The part of the scaled image actually displayed is cropped to the
+	 * current context.
+	 */
+	clipped.x0 = x;
+	clipped.y0 = y;
+	clipped.x1 = x + width;
+	clipped.y1 = y + height;
+
+	if (!nsfb_plot_clip_ctx(nsfb, &clipped))
+		return true;
+
+	/* get height of rendering region, after clipping */
+	if (height > (clipped.y1 - clipped.y0))
+		rheight = (clipped.y1 - clipped.y0);
+	else
+		rheight = height;
+
+	/* get width of rendering region, after clipping */
+	if (width > (clipped.x1 - clipped.x0))
+		rwidth = (clipped.x1 - clipped.x0);
+	else
+		rwidth = width;
+
+	/* start offsets to part of image being scaled, after clipping */
+	xoffs = ((clipped.x0 - x) * bmp_width) / width;
+	yoff = (((clipped.y0 - y) * bmp_height) / height) * bmp_stride;
+
+	/* get veritcal (y) and horizontal (x) scale factors; both integer
+	 * part and remainder */
+	dx = bmp_width / width;
+	dy = bmp_height / height;
+	dxr = bmp_width % width;
+	dyr = bmp_height % height;
+	rx = ry = 0; /* initialise remainder counters */
+
+	/* plot the image */
+	pvideo = get_xy_loc(nsfb, clipped.x0, clipped.y0);
+	pvideo_limit = pvideo + (nsfb->linelen >> 2) * rheight;
+	if (alpha) {
+		for (; pvideo < pvideo_limit; pvideo += (nsfb->linelen >> 1)) {
+			/* looping through render area vertically */
+			xoff = xoffs;
+			rx = 0;
+			for (xloop = 0; xloop < rwidth; xloop++) {
+				/* looping through render area horizontally */
+				/* get value of source pixel in question */
+				abpixel = pixel[yoff + xoff];
+				if ((abpixel & 0xFF000000) != 0) {
+					/* pixel is not transparent; have to
+					 * plot something */
+					if ((abpixel & 0xFF000000) !=
+							0xFF000000) {
+						/* pixel is not opaque; need to
+						 * blend */
+						abpixel = nsfb_plot_ablend(
+								abpixel,
+								pixel_to_colour(
+								*(pvideo +
+								xloop)));
+					}
+					/* plot pixel */
+					*(pvideo + xloop) = colour_to_pixel(
+							abpixel);
+				}
+				/* handle horizontal interpolation */
+				xoff += dx;
+				rx += dxr;
+				if (rx >= width) {
+					xoff++;
+					rx -= width;
+				}
+			}
+			/* handle vertical interpolation */
+			yoff += bmp_stride * dy;
+			ry += dyr;
+			if (ry >= height) {
+				yoff += bmp_stride;
+				ry -= height;
+			}
+		}
+	} else {
+		for (; pvideo < pvideo_limit; pvideo += (nsfb->linelen >> 1)) {
+			/* looping through render area vertically */
+			xoff = xoffs;
+			rx = 0;
+			for (xloop = 0; xloop < rwidth; xloop++) {
+				/* looping through render area horizontally */
+				/* get value of source pixel in question */
+				abpixel = pixel[yoff + xoff];
+				/* plot pixel */
+				*(pvideo + xloop) = colour_to_pixel(abpixel);
+
+				/* handle horizontal interpolation */
+				xoff += dx;
+				rx += dxr;
+				if (rx >= width) {
+					xoff++;
+					rx -= width;
+				}
+			}
+			/* handle vertical interpolation */
+			yoff += bmp_stride * dy;
+			ry += dyr;
+			if (ry >= height) {
+				yoff += bmp_stride;
+				ry -= height;
+			}
+		}
+	}
+	return true;
+}
+
 static bool 
 bitmap(nsfb_t *nsfb,
        const nsfb_bbox_t *loc,
@@ -342,15 +472,10 @@ bitmap(nsfb_t *nsfb,
         int height = loc->y1 - loc->y0;
         nsfb_bbox_t clipped; /* clipped display */
 
-
-        /* TODO here we should scale the image from bitmap->width to width, for
-         * now simply crop.
-         */
-        if (width > bmp_width)
-                width = bmp_width;
-
-        if (height > bmp_height)
-                height = bmp_height;
+        /* Scaled bitmaps are handled by a separate function */
+        if (width != bmp_width || height != bmp_height)
+                return bitmap_scaled(nsfb, loc, pixel, bmp_width, bmp_height,
+                                bmp_stride, alpha);
 
         /* The part of the scaled image actually displayed is cropped to the
          * current context.
@@ -369,10 +494,9 @@ bitmap(nsfb_t *nsfb,
         if (width > (clipped.x1 - clipped.x0))
                 width = (clipped.x1 - clipped.x0);
 
-
         xoff = clipped.x0 - x;
-        yoff = (clipped.y0 - y) * bmp_width;
-        height = height * bmp_width + yoff;
+        yoff = (clipped.y0 - y) * bmp_stride;
+        height = height * bmp_stride + yoff;
 
         /* plot the image */
         pvideo = get_xy_loc(nsfb, clipped.x0, clipped.y0);
@@ -382,7 +506,11 @@ bitmap(nsfb_t *nsfb,
                         for (xloop = 0; xloop < width; xloop++) {
                                 abpixel = pixel[yloop + xloop + xoff];
                                 if ((abpixel & 0xFF000000) != 0) {
+                                	/* pixel is not transparent; have to
+                                	 * plot something */
                                         if ((abpixel & 0xFF000000) != 0xFF000000) {
+                                        	/* pixel is not opaque; need to
+                                        	 * blend */
                                                 abpixel = nsfb_plot_ablend(abpixel,
                                                                            pixel_to_colour(*(pvideo + xloop)));
                                         }
@@ -401,7 +529,6 @@ bitmap(nsfb_t *nsfb,
                         pvideo += (nsfb->linelen >> 1);
                 }
         }
-
         return true;
 }
 
