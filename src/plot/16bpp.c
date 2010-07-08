@@ -1,5 +1,6 @@
 /*
  * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ * Copyright 2010 Michael Drake <tlsa@netsurf-browser.org>
  *
  * This file is part of libnsfb, http://www.netsurf-browser.org/
  * Licenced under the MIT License,
@@ -378,7 +379,7 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 
 	/* plot the image */
 	pvideo = get_xy_loc(nsfb, clipped.x0, clipped.y0);
-	pvideo_limit = pvideo + (nsfb->linelen >> 2) * rheight;
+	pvideo_limit = pvideo + (nsfb->linelen >> 1) * rheight;
 	if (alpha) {
 		for (; pvideo < pvideo_limit; pvideo += (nsfb->linelen >> 1)) {
 			/* looping through render area vertically */
