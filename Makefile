@@ -19,7 +19,7 @@ CFLAGS := -g -std=c99 -D_BSD_SOURCE -I$(CURDIR)/include/ \
 	-I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS)
 
 # TODO: probably want to retrieve SDL from pkg-config
-TESTLDFLAGS = -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive -lSDL -lxcb-icccm -lxcb -lxcb-image
+TESTLDFLAGS = -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive -lSDL -lxcb-icccm -lxcb -lxcb-image -lxcb-keysyms
 
 include build/makefiles/Makefile.top
 
