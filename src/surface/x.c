@@ -7,7 +7,6 @@
  */
 
 #define _XOPEN_SOURCE 500
-#define NEED_HINTS_ALLOC
 
 #include <stdbool.h>
 #include <stdlib.h>
