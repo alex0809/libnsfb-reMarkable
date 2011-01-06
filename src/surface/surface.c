@@ -9,7 +9,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <unistd.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "frontend.h"

@@ -8,7 +8,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
-#include <malloc.h>
+#include <stdlib.h>
 
 #include "libnsfb.h"
 #include "libnsfb_plot.h"
