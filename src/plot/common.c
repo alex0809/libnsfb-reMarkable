@@ -193,7 +193,7 @@ glyph8(nsfb_t *nsfb,
        nsfb_colour_t c)
 {
         PLOT_TYPE *pvideo;
-        PLOT_TYPE fgcol;
+        nsfb_colour_t fgcol;
         nsfb_colour_t abpixel; /* alphablended pixel */
         int xloop, yloop;
         int xoff, yoff; /* x and y offset into image */
