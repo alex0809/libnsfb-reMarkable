@@ -69,7 +69,7 @@ static bool fill(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t c)
                 width = width >> 1;
                 llen = (nsfb->linelen >> 2) - width;
                 ent32 = ent16 | (ent16 << 16);
-                pvid32 = (uint32_t *)pvid16;
+                pvid32 = (void *)pvid16;
 
                 while (height-- > 0) {
                         w = width;

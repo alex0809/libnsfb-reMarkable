@@ -23,7 +23,7 @@
 
 static inline uint32_t *get_xy_loc(nsfb_t *nsfb, int x, int y)
 {
-        return (uint32_t *)(nsfb->ptr + (y * nsfb->linelen) + (x << 2));
+        return (void *)(nsfb->ptr + (y * nsfb->linelen) + (x << 2));
 }
 
 #if __BYTE_ORDER == __BIG_ENDIAN
