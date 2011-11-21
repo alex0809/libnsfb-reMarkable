@@ -1,3 +1,16 @@
+/*
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ *
+ * This is the exported interface for the libnsfb graphics library. 
+ */
+
+#ifndef _LIBNSFB_EVENT_H
+#define _LIBNSFB_EVENT_H 1
+
 enum nsfb_event_type_e {
     NSFB_EVENT_NONE,
     NSFB_EVENT_CONTROL,
@@ -13,6 +26,7 @@ enum nsfb_key_code_e {
     NSFB_KEY_UNKNOWN		= 0,
     NSFB_KEY_BACKSPACE		= 8,
     NSFB_KEY_TAB		= 9,
+    NSFB_KEY_LF                 = 10,
     NSFB_KEY_CLEAR		= 12,
     NSFB_KEY_RETURN		= 13,
     NSFB_KEY_PAUSE		= 19,
@@ -166,7 +180,8 @@ enum nsfb_key_code_e {
 
 enum nsfb_control_e {
     NSFB_CONTROL_NONE,
-    NSFB_CONTROL_QUIT,
+    NSFB_CONTROL_TIMEOUT, /* timeout event */
+    NSFB_CONTROL_QUIT, /* surface handler quit event */
 };
 
 struct nsfb_event_s {
@@ -193,3 +208,12 @@ struct nsfb_event_s {
  * @return If the /a event structure is updated true else false.
  */
 bool nsfb_event(nsfb_t *nsfb, nsfb_event_t *event, int timeout);
+
+#endif
+
+/*
+ * Local variables:
+ *  c-basic-offset: 4
+ *  tab-width: 8
+ * End:
+ */

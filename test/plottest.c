@@ -1,21 +1,18 @@
-/* libnsfb plotetr test program */
+/* libnsfb plotter test program */
 
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "libnsfb.h"
 #include "libnsfb_plot.h"
 #include "libnsfb_event.h"
 
 #define UNUSED(x) ((x) = (x))
-
-extern const struct {
-    unsigned int  width;
-    unsigned int  height;
-    unsigned int  bytes_per_pixel; /* 3:RGB, 4:RGBA */
-    unsigned char pixel_data[132 * 135 * 4 + 1];
-} nsglobe;
 
 const struct {
     unsigned int w;
@@ -67,11 +64,34 @@ const struct {
     }
 };
 
+
+static bool
+dump(nsfb_t *nsfb, const char *filename)
+{
+    int fd;
+
+    if (filename  == NULL)
+	return false;
+
+    fd = open(filename, O_RDWR | O_CREAT | O_TRUNC, S_IRWXU);
+    if (fd < 0)
+	return false;
+
+    nsfb_dump(nsfb, fd);
+    
+    close(fd);
+
+    return true;
+}
+
 int main(int argc, char **argv)
 {
+    const char *fename;
+    enum nsfb_type_e fetype;
     nsfb_t *nsfb;
-    int bpp;
     nsfb_event_t event;
+    int waitloop = 3;
+
     nsfb_bbox_t box;
     nsfb_bbox_t box2;
     nsfb_bbox_t box3;
@@ -80,37 +100,40 @@ int main(int argc, char **argv)
     int p[] = { 300,300,  350,350, 400,300, 450,250, 400,200};
     int loop;
     nsfb_plot_pen_t pen;
+    const char *dumpfile = NULL;
 
     if (argc < 2) {
-	    bpp = 32;
+        fename="sdl";
     } else {
-	    bpp = atoi(argv[1]);
-	    if (bpp == 0)
-		    bpp = 32;
+        fename = argv[1];
+	if (argc >= 3) {
+	    dumpfile = argv[2];
+	}
     }
 
-    nsfb = nsfb_init(NSFB_FRONTEND_SDL);
-    if (nsfb == NULL) {
-        fprintf(stderr, "Unable to initialise nsfb with SDL frontend\n");
+    fetype = nsfb_type_from_name(fename);
+    if (fetype == NSFB_SURFACE_NONE) {
+        fprintf(stderr, "Unable to convert \"%s\" to nsfb surface type\n", fename);
         return 1;
     }
 
-    if (nsfb_set_geometry(nsfb, 0, 0, bpp) == -1) {
-        fprintf(stderr, "Unable to set geometry\n");
-        nsfb_finalise(nsfb);
-        return 3;
+    nsfb = nsfb_new(fetype);
+    if (nsfb == NULL) {
+        fprintf(stderr, "Unable to allocate \"%s\" nsfb surface\n", fename);
+        return 2;
     }
 
-    if (nsfb_init_frontend(nsfb) == -1) {
-        fprintf(stderr, "Unable to initialise nsfb frontend\n");
-        return 2;
+    if (nsfb_init(nsfb) == -1) {
+        fprintf(stderr, "Unable to initialise nsfb surface\n");
+        nsfb_free(nsfb);
+        return 4;
     }
 
     /* get the geometry of the whole screen */
     box.x0 = box.y0 = 0;
     nsfb_get_geometry(nsfb, &box.x1, &box.y1, NULL);
 
-    nsfb_get_framebuffer(nsfb, &fbptr, &fbstride);
+    nsfb_get_buffer(nsfb, &fbptr, &fbstride);
 
     /* claim the whole screen for update */
     nsfb_claim(nsfb, &box);
@@ -219,14 +242,7 @@ int main(int argc, char **argv)
     box3.x1 = 700;
     box3.y1 = 300;
 
-    nsfb_plot_copy(nsfb, &box2, &box3);
-
-    box3.x0 = 50;
-    box3.x1 = 200;
-    box3.y0 = 300;
-    box3.y1 = 500;
-
-    nsfb_plot_bitmap(nsfb, &box3, (nsfb_colour_t *)nsglobe.pixel_data, nsglobe.width, nsglobe.height, nsglobe.width, true);
+    nsfb_plot_copy(nsfb, &box2, nsfb, &box3);
 
     /* test glyph plotting */
     for (loop = 100; loop < 200; loop+= Mglyph1.w) {
@@ -270,9 +286,31 @@ int main(int argc, char **argv)
         nsfb_update(nsfb, &box2);
     }
 
+    /* wait for quit event or timeout */
+    while (waitloop > 0) {
+	if (nsfb_event(nsfb, &event, 1000)  == false) {
+	    break;
+	}
+	if (event.type == NSFB_EVENT_CONTROL) {
+	    if (event.value.controlcode == NSFB_CONTROL_TIMEOUT) {
+		/* timeout */
+		waitloop--;
+	    } else if (event.value.controlcode == NSFB_CONTROL_QUIT) {
+		break;
+	    }
+	}
+    }
 
-    while (event.type != NSFB_EVENT_CONTROL)
-        nsfb_event(nsfb, &event, -1);
+    dump(nsfb, dumpfile);
+
+    nsfb_free(nsfb);
 
     return 0;
 }
+
+/*
+ * Local variables:
+ *  c-basic-offset: 4
+ *  tab-width: 8
+ * End:
+ */

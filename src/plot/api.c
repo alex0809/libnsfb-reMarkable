@@ -126,9 +126,41 @@ bool nsfb_plot_ellipse_fill(nsfb_t *nsfb, nsfb_bbox_t *ellipse, nsfb_colour_t c)
     return nsfb->plotter_fns->ellipse_fill(nsfb, ellipse, c);
 }
 
-bool nsfb_plot_copy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
+/* copy an area of surface from one location to another.
+ *
+ * @warning This implementation is woefully incomplete!
+ */
+bool
+nsfb_plot_copy(nsfb_t *srcfb, 
+	       nsfb_bbox_t *srcbox, 
+	       nsfb_t *dstfb, 
+	       nsfb_bbox_t *dstbox)
 {
-	return nsfb->plotter_fns->copy(nsfb, srcbox, dstbox);
+    bool trans = false;
+    nsfb_colour_t srccol;
+
+    if (srcfb == dstfb) {
+	return dstfb->plotter_fns->copy(srcfb, srcbox, dstbox);
+    }
+
+    if (srcfb->format == NSFB_FMT_ABGR8888) {
+	trans = true;
+    }
+
+    if ((srcfb->width == 1) && (srcfb->height == 1)) {
+	srccol = *(nsfb_colour_t *)(srcfb->ptr);
+	
+	/* check for completely transparent */
+	if ((srccol & 0xff000000) == 0)
+	    return true; 
+
+	/* completely opaque pixels can be replaced with fill */
+	if ((srccol & 0xff000000) == 0xff)
+	    return dstfb->plotter_fns->fill(dstfb, dstbox, srccol);
+    }
+
+    return dstfb->plotter_fns->bitmap(dstfb, dstbox, (const nsfb_colour_t *)srcfb->ptr, srcfb->width, srcfb->height, (srcfb->linelen * 8) / srcfb->bpp, trans);
+    
 }
 
 bool nsfb_plot_bitmap(nsfb_t *nsfb, const nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha)
@@ -172,3 +204,10 @@ bool nsfb_plot_path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_pl
 {
     return nsfb->plotter_fns->path(nsfb, pathc, pathop, pen);
 }
+
+/*
+ * Local variables:
+ *  c-basic-offset: 4
+ *  tab-width: 8
+ * End:
+ */

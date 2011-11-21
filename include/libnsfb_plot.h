@@ -148,7 +148,7 @@ bool nsfb_plot_path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_pl
  *
  * Copy an area of the display.
  */
-bool nsfb_plot_copy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox);
+bool nsfb_plot_copy(nsfb_t *srcfb, nsfb_bbox_t *srcbox, nsfb_t *dstfb, nsfb_bbox_t *dstbox);
 
 /** Plot bitmap.
  */

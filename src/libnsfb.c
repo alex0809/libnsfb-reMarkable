@@ -14,60 +14,70 @@
 #include "libnsfb_plot.h"
 #include "libnsfb_event.h"
 #include "nsfb.h"
-#include "frontend.h"
+#include "surface.h"
 
-/* documented in libnsfb.h */
+/* exported interface documented in libnsfb.h */
 nsfb_t*
-nsfb_init(const enum nsfb_frontend_e frontend_type)
+nsfb_new(const enum nsfb_type_e surface_type)
 {
     nsfb_t *newfb;
     newfb = calloc(1, sizeof(nsfb_t));
     if (newfb == NULL)
         return NULL;
 
-    /* obtain frontend routines */
-    newfb->frontend_rtns = nsfb_frontend_get_rtns(frontend_type);
-    if (newfb->frontend_rtns == NULL) {
+    /* obtain surface routines */
+    newfb->surface_rtns = nsfb_surface_get_rtns(surface_type);
+    if (newfb->surface_rtns == NULL) {
         free(newfb);
         return NULL;
     }
 
-    newfb->frontend_rtns->defaults(newfb);
+    newfb->surface_rtns->defaults(newfb);
 
     return newfb;
 }
 
-int nsfb_finalise(nsfb_t *nsfb)
+/* exported interface documented in libnsfb.h */
+int
+nsfb_init(nsfb_t *nsfb)
+{
+    return nsfb->surface_rtns->initialise(nsfb);
+}
+
+/* exported interface documented in libnsfb.h */
+int 
+nsfb_free(nsfb_t *nsfb)
 {
     int ret;
-    ret = nsfb->frontend_rtns->finalise(nsfb);
+    ret = nsfb->surface_rtns->finalise(nsfb);
     free(nsfb);
     return ret;
 }
 
-
-int
-nsfb_init_frontend(nsfb_t *nsfb)
+/* exported interface documented in libnsfb.h */
+bool 
+nsfb_event(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
-    return nsfb->frontend_rtns->initialise(nsfb);
+    return nsfb->surface_rtns->input(nsfb, event, timeout);
 }
 
-bool nsfb_event(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
+/* exported interface documented in libnsfb.h */
+int 
+nsfb_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
-    return nsfb->frontend_rtns->input(nsfb, event, timeout);
+    return nsfb->surface_rtns->claim(nsfb, box);
 }
 
-int nsfb_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
+/* exported interface documented in libnsfb.h */
+int 
+nsfb_update(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
-    return nsfb->frontend_rtns->claim(nsfb, box);
+    return nsfb->surface_rtns->update(nsfb, box);
 }
 
-int nsfb_update(nsfb_t *nsfb, nsfb_bbox_t *box)
-{
-    return nsfb->frontend_rtns->update(nsfb, box);
-}
-
-int nsfb_set_geometry(nsfb_t *nsfb, int width, int height, int bpp) 
+/* exported interface documented in libnsfb.h */
+int 
+nsfb_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format) 
 {
     if (width <= 0)
         width = nsfb->width;        
@@ -75,13 +85,15 @@ int nsfb_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
     if (height <= 0)
         height = nsfb->height;        
 
-    if ((bpp != 32) && (bpp != 16) && (bpp != 8))
-        bpp = nsfb->bpp; 
+    if (format == NSFB_FMT_ANY)
+	    format = nsfb->format; 
 
-    return nsfb->frontend_rtns->geometry(nsfb, width, height, bpp);
+    return nsfb->surface_rtns->geometry(nsfb, width, height, format);
 }
 
-int nsfb_get_geometry(nsfb_t *nsfb, int *width, int *height, int *bpp) 
+/* exported interface documented in libnsfb.h */
+int 
+nsfb_get_geometry(nsfb_t *nsfb, int *width, int *height, enum nsfb_format_e *format) 
 {
     if (width != NULL)
         *width = nsfb->width;
@@ -89,15 +101,30 @@ int nsfb_get_geometry(nsfb_t *nsfb, int *width, int *height, int *bpp)
     if (height != NULL)
         *height = nsfb->height;
 
-    if (bpp != NULL)
-        *bpp = nsfb->bpp;
+    if (format != NULL)
+        *format = nsfb->format;
 
     return 0;
 }
 
-int nsfb_get_framebuffer(nsfb_t *nsfb, uint8_t **ptr, int *linelen) 
+/* exported interface documented in libnsfb.h */
+int 
+nsfb_get_buffer(nsfb_t *nsfb, uint8_t **ptr, int *linelen) 
 {
-    *ptr = nsfb->ptr;
-    *linelen = nsfb->linelen;
+    if (ptr != NULL) {
+	*ptr = nsfb->ptr;
+    }
+    if (linelen != NULL) {
+	*linelen = nsfb->linelen;
+    }
     return 0;
 }
+
+
+/*
+ * Local variables:
+ *  c-basic-offset: 4
+ *  tab-width: 8
+ * End:
+ */
+

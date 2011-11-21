@@ -16,20 +16,20 @@
 
 #include "nsfb.h"
 #include "plot.h"
-#include "frontend.h"
+#include "surface.h"
 #include "cursor.h"
 
 
 #define UNUSED(x) ((x) = (x))
 
-static int linux_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
+static int linux_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
 {
-    if (nsfb->frontend_priv != NULL)
+    if (nsfb->surface_priv != NULL)
         return -1; /* if we are already initialised fail */
 
     nsfb->width = width;
     nsfb->height = height;
-    nsfb->bpp = bpp;
+    nsfb->format = format;
 
     /* select default sw plotters for bpp */
     select_plotters(nsfb);
@@ -39,7 +39,7 @@ static int linux_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
 
 static int linux_initialise(nsfb_t *nsfb)
 {
-    if (nsfb->frontend_priv != NULL)
+    if (nsfb->surface_priv != NULL)
         return -1;
 
     /* sanity checked depth. */
@@ -122,7 +122,7 @@ static int linux_update(nsfb_t *nsfb, nsfb_bbox_t *box)
     return 0;
 }
 
-const nsfb_frontend_rtns_t linux_rtns = {
+const nsfb_surface_rtns_t linux_rtns = {
     .initialise = linux_initialise,
     .finalise = linux_finalise,
     .input = linux_input,
@@ -132,4 +132,4 @@ const nsfb_frontend_rtns_t linux_rtns = {
     .geometry = linux_set_geometry,
 };
 
-NSFB_FRONTEND_DEF(linux, NSFB_FRONTEND_LINUX, &linux_rtns)
+NSFB_SURFACE_DEF(linux, NSFB_SURFACE_LINUX, &linux_rtns)

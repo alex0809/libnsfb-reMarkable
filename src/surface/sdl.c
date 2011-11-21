@@ -16,7 +16,7 @@
 #include "libnsfb_plot_util.h"
 
 #include "nsfb.h"
-#include "frontend.h"
+#include "surface.h"
 #include "plot.h"
 #include "cursor.h"
 
@@ -350,7 +350,7 @@ enum nsfb_key_code_e sdl_nsfb_map[] = {
 static void
 set_palette(nsfb_t *nsfb)
 {
-    SDL_Surface *sdl_screen = nsfb->frontend_priv;
+    SDL_Surface *sdl_screen = nsfb->surface_priv;
     SDL_Color palette[256];
     int rloop, gloop, bloop;
     int loop = 0;
@@ -363,8 +363,8 @@ set_palette(nsfb_t *nsfb)
                 palette[loop].g = (gloop << 5) | (gloop << 2) | (gloop >> 1);
                 palette[loop].b = (bloop << 6) | (bloop << 4) | (bloop << 2) | (bloop);
                 nsfb->palette[loop] = palette[loop].r |
-                                      palette[loop].g << 8 |
-                                      palette[loop].b << 16;
+		    palette[loop].g << 8 |
+		    palette[loop].b << 16;
                 loop++;
             }
         }
@@ -380,7 +380,7 @@ sdlcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 {
     SDL_Rect src;
     SDL_Rect dst;
-    SDL_Surface *sdl_screen = nsfb->frontend_priv;
+    SDL_Surface *sdl_screen = nsfb->surface_priv;
     nsfb_bbox_t allbox;
     struct nsfb_cursor_s *cursor = nsfb->cursor;
 
@@ -416,16 +416,16 @@ sdlcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 
 }
 
-static int sdl_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
+static int sdl_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
 {
-    if (nsfb->frontend_priv != NULL)
-        return -1; /* if were already initialised fail */
+    if (nsfb->surface_priv != NULL)
+        return -1; /* fail if surface already initialised */
 
     nsfb->width = width;
     nsfb->height = height;
-    nsfb->bpp = bpp;
+    nsfb->format = format;
 
-    /* select default sw plotters for bpp */
+    /* select default sw plotters for format */
     select_plotters(nsfb);
 
     nsfb->plotter_fns->copy = sdlcopy;
@@ -437,7 +437,7 @@ static int sdl_initialise(nsfb_t *nsfb)
 {
     SDL_Surface *sdl_screen;
 
-    if (nsfb->frontend_priv != NULL)
+    if (nsfb->surface_priv != NULL)
         return -1;
 
     /* sanity checked depth. */
@@ -449,7 +449,6 @@ static int sdl_initialise(nsfb_t *nsfb)
         fprintf(stderr, "Unable to init SDL: %s\n", SDL_GetError());
         return -1;
     }
-    atexit(SDL_Quit);
 
     sdl_screen = SDL_SetVideoMode(nsfb->width,
                                   nsfb->height,
@@ -461,7 +460,7 @@ static int sdl_initialise(nsfb_t *nsfb)
         return -1;
     }
 
-    nsfb->frontend_priv = sdl_screen;
+    nsfb->surface_priv = sdl_screen;
 
     if (nsfb->bpp == 8)
         set_palette(nsfb);
@@ -478,6 +477,7 @@ static int sdl_initialise(nsfb_t *nsfb)
 static int sdl_finalise(nsfb_t *nsfb)
 {
     nsfb=nsfb;
+    SDL_Quit();
     return 0;
 }
 
@@ -518,92 +518,98 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
                 SDL_RemoveTimer(tid);
             }
         } else {
-        got_event = SDL_WaitEvent(&sdlevent);
+	    got_event = SDL_WaitEvent(&sdlevent);
         }
     }
 
     /* Do nothing if there was no event */
-    if (got_event == 0)
+    if (got_event == 0) {
         return false;
+    }
 
     event->type = NSFB_EVENT_NONE;
 
     switch (sdlevent.type) {
-        case SDL_KEYDOWN:
-            event->type = NSFB_EVENT_KEY_DOWN;
-            event->value.keycode = sdl_nsfb_map[sdlevent.key.keysym.sym];
-            break;
+    case SDL_KEYDOWN:
+	event->type = NSFB_EVENT_KEY_DOWN;
+	event->value.keycode = sdl_nsfb_map[sdlevent.key.keysym.sym];
+	break;
 
-        case SDL_KEYUP:
-            event->type = NSFB_EVENT_KEY_UP;
-            event->value.keycode = sdl_nsfb_map[sdlevent.key.keysym.sym];
-            break;
+    case SDL_KEYUP:
+	event->type = NSFB_EVENT_KEY_UP;
+	event->value.keycode = sdl_nsfb_map[sdlevent.key.keysym.sym];
+	break;
 
-        case SDL_MOUSEBUTTONDOWN:
-            event->type = NSFB_EVENT_KEY_DOWN;
+    case SDL_MOUSEBUTTONDOWN:
+	event->type = NSFB_EVENT_KEY_DOWN;
 
-            switch (sdlevent.button.button) {
+	switch (sdlevent.button.button) {
 
-            case SDL_BUTTON_LEFT:
-                event->value.keycode = NSFB_KEY_MOUSE_1;
-                break;
+	case SDL_BUTTON_LEFT:
+	    event->value.keycode = NSFB_KEY_MOUSE_1;
+	    break;
 
-            case SDL_BUTTON_MIDDLE:
-                event->value.keycode = NSFB_KEY_MOUSE_2;
-                break;
+	case SDL_BUTTON_MIDDLE:
+	    event->value.keycode = NSFB_KEY_MOUSE_2;
+	    break;
 
-            case SDL_BUTTON_RIGHT:
-                event->value.keycode = NSFB_KEY_MOUSE_3;
-                break;
+	case SDL_BUTTON_RIGHT:
+	    event->value.keycode = NSFB_KEY_MOUSE_3;
+	    break;
 
-            case SDL_BUTTON_WHEELUP:
-                event->value.keycode = NSFB_KEY_MOUSE_4;
-                break;
+	case SDL_BUTTON_WHEELUP:
+	    event->value.keycode = NSFB_KEY_MOUSE_4;
+	    break;
 
-            case SDL_BUTTON_WHEELDOWN:
-                event->value.keycode = NSFB_KEY_MOUSE_5;
-                break;
-            }
-            break;
+	case SDL_BUTTON_WHEELDOWN:
+	    event->value.keycode = NSFB_KEY_MOUSE_5;
+	    break;
+	}
+	break;
 
-        case SDL_MOUSEBUTTONUP:
-            event->type = NSFB_EVENT_KEY_UP;
+    case SDL_MOUSEBUTTONUP:
+	event->type = NSFB_EVENT_KEY_UP;
 
-            switch (sdlevent.button.button) {
+	switch (sdlevent.button.button) {
 
-            case SDL_BUTTON_LEFT:
-                event->value.keycode = NSFB_KEY_MOUSE_1;
-                break;
+	case SDL_BUTTON_LEFT:
+	    event->value.keycode = NSFB_KEY_MOUSE_1;
+	    break;
 
-            case SDL_BUTTON_MIDDLE:
-                event->value.keycode = NSFB_KEY_MOUSE_2;
-                break;
+	case SDL_BUTTON_MIDDLE:
+	    event->value.keycode = NSFB_KEY_MOUSE_2;
+	    break;
 
-            case SDL_BUTTON_RIGHT:
-                event->value.keycode = NSFB_KEY_MOUSE_3;
-                break;
+	case SDL_BUTTON_RIGHT:
+	    event->value.keycode = NSFB_KEY_MOUSE_3;
+	    break;
 
-            case SDL_BUTTON_WHEELUP:
-                event->value.keycode = NSFB_KEY_MOUSE_4;
-                break;
+	case SDL_BUTTON_WHEELUP:
+	    event->value.keycode = NSFB_KEY_MOUSE_4;
+	    break;
 
-            case SDL_BUTTON_WHEELDOWN:
-                event->value.keycode = NSFB_KEY_MOUSE_5;
-                break;
-            }
-            break;
+	case SDL_BUTTON_WHEELDOWN:
+	    event->value.keycode = NSFB_KEY_MOUSE_5;
+	    break;
+	}
+	break;
 
-        case SDL_MOUSEMOTION:
-            event->type = NSFB_EVENT_MOVE_ABSOLUTE;
-            event->value.vector.x = sdlevent.motion.x;
-            event->value.vector.y = sdlevent.motion.y;
-            event->value.vector.z = 0;
-            break;
+    case SDL_MOUSEMOTION:
+	event->type = NSFB_EVENT_MOVE_ABSOLUTE;
+	event->value.vector.x = sdlevent.motion.x;
+	event->value.vector.y = sdlevent.motion.y;
+	event->value.vector.z = 0;
+	break;
 
-        case SDL_QUIT:
-            event->type = NSFB_EVENT_CONTROL;
-            event->value.controlcode = NSFB_CONTROL_QUIT;
-            break;
+    case SDL_QUIT:
+	event->type = NSFB_EVENT_CONTROL;
+	event->value.controlcode = NSFB_CONTROL_QUIT;
+	break;
+
+    case SDL_USEREVENT:
+	event->type = NSFB_EVENT_CONTROL;
+	event->value.controlcode = NSFB_CONTROL_TIMEOUT;
+	break;
 
     }
 
@@ -625,7 +631,7 @@ static int sdl_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
 static int
 sdl_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 {
-    SDL_Surface *sdl_screen = nsfb->frontend_priv;
+    SDL_Surface *sdl_screen = nsfb->surface_priv;
     nsfb_bbox_t redraw;
     nsfb_bbox_t fbarea;
 
@@ -659,7 +665,7 @@ sdl_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 
 static int sdl_update(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
-    SDL_Surface *sdl_screen = nsfb->frontend_priv;
+    SDL_Surface *sdl_screen = nsfb->surface_priv;
     struct nsfb_cursor_s *cursor = nsfb->cursor;
 
     if ((cursor != NULL) &&
@@ -676,7 +682,7 @@ static int sdl_update(nsfb_t *nsfb, nsfb_bbox_t *box)
     return 0;
 }
 
-const nsfb_frontend_rtns_t sdl_rtns = {
+const nsfb_surface_rtns_t sdl_rtns = {
     .initialise = sdl_initialise,
     .finalise = sdl_finalise,
     .input = sdl_input,
@@ -686,4 +692,11 @@ const nsfb_frontend_rtns_t sdl_rtns = {
     .geometry = sdl_set_geometry,
 };
 
-NSFB_FRONTEND_DEF(sdl, NSFB_FRONTEND_SDL, &sdl_rtns)
+NSFB_SURFACE_DEF(sdl, NSFB_SURFACE_SDL, &sdl_rtns)
+
+/*
+ * Local variables:
+ *  c-basic-offset: 4
+ *  tab-width: 8
+ * End:
+ */

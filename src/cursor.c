@@ -1,3 +1,15 @@
+/*
+ * Copyright 2010 Vincent Sanders <vince@kyllikki.org>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ */
+
+/** \file
+ * cursor (implementation).
+ */
+
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -8,7 +20,7 @@
 #include "nsfb.h"
 #include "cursor.h"
 #include "plot.h"
-#include "frontend.h"
+#include "surface.h"
 
 bool nsfb_cursor_init(nsfb_t *nsfb)
 {
@@ -36,7 +48,7 @@ bool nsfb_cursor_set(nsfb_t *nsfb, const nsfb_colour_t *pixel, int bmp_width, in
     nsfb->cursor->loc.x1 = nsfb->cursor->loc.x0 + nsfb->cursor->bmp_width;
     nsfb->cursor->loc.y1 = nsfb->cursor->loc.y0 + nsfb->cursor->bmp_height;
  
-    return nsfb->frontend_rtns->cursor(nsfb, nsfb->cursor);
+    return nsfb->surface_rtns->cursor(nsfb, nsfb->cursor);
 }
 
 bool nsfb_cursor_loc_set(nsfb_t *nsfb, const nsfb_bbox_t *loc)
@@ -48,7 +60,7 @@ bool nsfb_cursor_loc_set(nsfb_t *nsfb, const nsfb_bbox_t *loc)
     nsfb->cursor->loc.x1 = nsfb->cursor->loc.x0 + nsfb->cursor->bmp_width;
     nsfb->cursor->loc.y1 = nsfb->cursor->loc.y0 + nsfb->cursor->bmp_height;
 
-    return nsfb->frontend_rtns->cursor(nsfb, nsfb->cursor);
+    return nsfb->surface_rtns->cursor(nsfb, nsfb->cursor);
 }
 
 bool nsfb_cursor_loc_get(nsfb_t *nsfb, nsfb_bbox_t *loc)

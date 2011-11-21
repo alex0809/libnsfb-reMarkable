@@ -22,7 +22,7 @@
 
 #include "nsfb.h"
 #include "plot.h"
-#include "frontend.h"
+#include "surface.h"
 
 extern const nsfb_plotter_fns_t _nsfb_1bpp_plotters;
 extern const nsfb_plotter_fns_t _nsfb_8bpp_plotters;
@@ -97,20 +97,20 @@ static bool clg(nsfb_t *nsfb, nsfb_colour_t c)
  * evenness of the total.
  */
 static bool establish_crossing_value(int x, int y, int x0, int y0,
-		int x1, int y1)
+				     int x1, int y1)
 {
-	bool v1 = (x == x0 && y == y0); /* whether we're crossing 1st vertex */
-	bool v2 = (x == x1 && y == y1); /* whether we're crossing 2nd vertex */
+    bool v1 = (x == x0 && y == y0); /* whether we're crossing 1st vertex */
+    bool v2 = (x == x1 && y == y1); /* whether we're crossing 2nd vertex */
 
-	if ((v1 && (y0 < y1)) || (v2 && (y1 < y0))) {
-		/* crossing top vertex */
-		return true;
-	} else if (!v1 && !v2) {
-		/* Intersection with current y level is not at a vertex.
-		 * Normal crossing. */
-		return true;
-	}
-	return false;
+    if ((v1 && (y0 < y1)) || (v2 && (y1 < y0))) {
+	/* crossing top vertex */
+	return true;
+    } else if (!v1 && !v2) {
+	/* Intersection with current y level is not at a vertex.
+	 * Normal crossing. */
+	return true;
+    }
+    return false;
 }
 
 
@@ -127,125 +127,125 @@ static bool establish_crossing_value(int x, int y, int x0, int y0,
  */
 static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 {
-	int i;
-	int p_x0, p_y0;
-	int p_x1, p_y1;
-	int x0_min, x1_min;
-	int x_new;
-	unsigned int x0c, x1c; /* counters for crossings at span end points */
-	bool crossing_value;
-	bool found_span_start = false;
+    int i;
+    int p_x0, p_y0;
+    int p_x1, p_y1;
+    int x0_min, x1_min;
+    int x_new;
+    unsigned int x0c, x1c; /* counters for crossings at span end points */
+    bool crossing_value;
+    bool found_span_start = false;
 
-	x0_min = x1_min = INT_MIN;
-	x0c = x1c = 0;
-	*x0 = *x1 = INT_MAX;
+    x0_min = x1_min = INT_MIN;
+    x0c = x1c = 0;
+    *x0 = *x1 = INT_MAX;
 
-	/* search row for next span, returning it if one exists */
-	do {
-		/* reset endpoint info, if valid span endpoints not found */
-		if (!found_span_start)
-			*x0 = INT_MAX;
-		*x1 = INT_MAX;
+    /* search row for next span, returning it if one exists */
+    do {
+	/* reset endpoint info, if valid span endpoints not found */
+	if (!found_span_start)
+	    *x0 = INT_MAX;
+	*x1 = INT_MAX;
 
-		/* search all lines in polygon */
-		for (i = 0; i < n; i = i + 2) {
-			/* get line endpoints */
-			if (i != n - 2) {
-				/* not the last line */
-				p_x0 = p[i];		p_y0 = p[i + 1];
-				p_x1 = p[i + 2];	p_y1 = p[i + 3];
-			} else {
-				/* last line; 2nd endpoint is first vertex */
-				p_x0 = p[i];		p_y0 = p[i + 1];
-				p_x1 = p[0];		p_y1 = p[1];
-			}
-			/* ignore horizontal lines */
-			if (p_y0 == p_y1)
-				continue;
+	/* search all lines in polygon */
+	for (i = 0; i < n; i = i + 2) {
+	    /* get line endpoints */
+	    if (i != n - 2) {
+		/* not the last line */
+		p_x0 = p[i];		p_y0 = p[i + 1];
+		p_x1 = p[i + 2];	p_y1 = p[i + 3];
+	    } else {
+		/* last line; 2nd endpoint is first vertex */
+		p_x0 = p[i];		p_y0 = p[i + 1];
+		p_x1 = p[0];		p_y1 = p[1];
+	    }
+	    /* ignore horizontal lines */
+	    if (p_y0 == p_y1)
+		continue;
 
-			/* ignore lines that don't cross this y level */
-			if ((y < p_y0 && y < p_y1) || (y > p_y0 && y > p_y1))
-				continue;
+	    /* ignore lines that don't cross this y level */
+	    if ((y < p_y0 && y < p_y1) || (y > p_y0 && y > p_y1))
+		continue;
 
-			if (p_x0 == p_x1) {
-				/* vertical line, x is constant */
-				x_new = p_x0;
-			} else {
-				/* find crossing (intersection of this line and
-				 * current y level) */
-				int num = (y - p_y0) * (p_x1 - p_x0);
-				int den = (p_y1 - p_y0);
+	    if (p_x0 == p_x1) {
+		/* vertical line, x is constant */
+		x_new = p_x0;
+	    } else {
+		/* find crossing (intersection of this line and
+		 * current y level) */
+		int num = (y - p_y0) * (p_x1 - p_x0);
+		int den = (p_y1 - p_y0);
 
-				/* To round to nearest (rather than down)
-				 * half the denominator is either added to
-				 * or subtracted from the numerator,
-				 * depending on whether the numerator and
-				 * denominator have the same sign. */
-				num = ((num < 0) == (den < 0)) ?
-						num + (den / 2) :
-						num - (den / 2);
-				x_new = p_x0 + num / den;
-			}
+		/* To round to nearest (rather than down)
+		 * half the denominator is either added to
+		 * or subtracted from the numerator,
+		 * depending on whether the numerator and
+		 * denominator have the same sign. */
+		num = ((num < 0) == (den < 0)) ?
+		    num + (den / 2) :
+		    num - (den / 2);
+		x_new = p_x0 + num / den;
+	    }
 
-			/* ignore crossings before current x */
-			if (x_new < x ||
-					(!found_span_start && x_new < x0_min) ||
-					(found_span_start && x_new < x1_min))
-				continue;
+	    /* ignore crossings before current x */
+	    if (x_new < x ||
+		(!found_span_start && x_new < x0_min) ||
+		(found_span_start && x_new < x1_min))
+		continue;
 
-			crossing_value = establish_crossing_value(x_new, y,
-					p_x0, p_y0, p_x1, p_y1);
+	    crossing_value = establish_crossing_value(x_new, y,
+						      p_x0, p_y0, p_x1, p_y1);
 
 
-			/* set nearest intersections as filled area endpoints */
-			if (!found_span_start &&
-					x_new < *x0 && crossing_value) {
-				/* nearer than first endpoint */
-				*x1 = *x0;
-				x1c = x0c;
-				*x0 = x_new;
-				x0c = 1;
-			} else if (!found_span_start &&
-					x_new == *x0 && crossing_value) {
-				/* same as first endpoint */
-				x0c++;
-			} else if (x_new < *x1 && crossing_value) {
-				/* nearer than second endpoint */
-				*x1 = x_new;
-				x1c = 1;
-			} else if (x_new == *x1 && crossing_value) {
-				/* same as second endpoint */
-				x1c++;
-			}
-		}
-		/* check whether the span endpoints have been found */
-		if (!found_span_start && x0c % 2 == 1) {
-			/* valid fill start found */
-			found_span_start = true;
+	    /* set nearest intersections as filled area endpoints */
+	    if (!found_span_start &&
+		x_new < *x0 && crossing_value) {
+		/* nearer than first endpoint */
+		*x1 = *x0;
+		x1c = x0c;
+		*x0 = x_new;
+		x0c = 1;
+	    } else if (!found_span_start &&
+		       x_new == *x0 && crossing_value) {
+		/* same as first endpoint */
+		x0c++;
+	    } else if (x_new < *x1 && crossing_value) {
+		/* nearer than second endpoint */
+		*x1 = x_new;
+		x1c = 1;
+	    } else if (x_new == *x1 && crossing_value) {
+		/* same as second endpoint */
+		x1c++;
+	    }
+	}
+	/* check whether the span endpoints have been found */
+	if (!found_span_start && x0c % 2 == 1) {
+	    /* valid fill start found */
+	    found_span_start = true;
 
-		}
-		if (x1c % 2 == 1) {
-			/* valid fill endpoint found */
-			if (!found_span_start) {
-				/* not got a start yet; use this as start */
-				found_span_start = true;
-				x0c = x1c;
-				*x0 = *x1;
-			} else {
-				/* got valid end of span */
-				return true;
-			}
-		}
-		/* if current positions aren't valid endpoints, set new
-		 * minimums after current positions */
-		if (!found_span_start)
-			x0_min = *x0 + 1;
-		x1_min = *x1 + 1;
+	}
+	if (x1c % 2 == 1) {
+	    /* valid fill endpoint found */
+	    if (!found_span_start) {
+		/* not got a start yet; use this as start */
+		found_span_start = true;
+		x0c = x1c;
+		*x0 = *x1;
+	    } else {
+		/* got valid end of span */
+		return true;
+	    }
+	}
+	/* if current positions aren't valid endpoints, set new
+	 * minimums after current positions */
+	if (!found_span_start)
+	    x0_min = *x0 + 1;
+	x1_min = *x1 + 1;
 
-	} while (*x1 != INT_MAX);
+    } while (*x1 != INT_MAX);
 
-	/* no spans found */
-	return false;
+    /* no spans found */
+    return false;
 }
 
 
@@ -260,87 +260,87 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
  */
 static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 {
-	int poly_x0, poly_y0; /* Bounding box top left corner */
-	int poly_x1, poly_y1; /* Bounding box bottom right corner */
-	int i, j; /* indexes */
-	int x0, x1; /* filled span extents */
-	int y; /* current y coordinate */
-	int y_max; /* bottom of plot area */
-	nsfb_bbox_t fline;
-	nsfb_plot_pen_t pen;
+    int poly_x0, poly_y0; /* Bounding box top left corner */
+    int poly_x1, poly_y1; /* Bounding box bottom right corner */
+    int i, j; /* indexes */
+    int x0, x1; /* filled span extents */
+    int y; /* current y coordinate */
+    int y_max; /* bottom of plot area */
+    nsfb_bbox_t fline;
+    nsfb_plot_pen_t pen;
 
-	/* find no. of vertex values */
-	int v = n * 2;
+    /* find no. of vertex values */
+    int v = n * 2;
 
-	/* Can't plot polygons with 2 or fewer vertices */
-	if (n <= 2)
-		return true;
-
-	pen.stroke_colour = c;
-
-	/* Find polygon bounding box */
-	poly_x0 = poly_x1 = *p;
-	poly_y0 = poly_y1 = p[1];
-	for (i = 2; i < v; i = i + 2) {
-		j = i + 1;
-		if (p[i] < poly_x0)
-			poly_x0 = p[i];
-		else if (p[i] > poly_x1)
-			poly_x1 = p[i];
-		if (p[j] < poly_y0)
-			poly_y0 = p[j];
-		else if (p[j] > poly_y1)
-			poly_y1 = p[j];
-	}
-
-	/* Don't try to plot it if it's outside the clip rectangle */
-	if (nsfb->clip.y1 < poly_y0 ||
-            nsfb->clip.y0 > poly_y1 ||
-            nsfb->clip.x1 < poly_x0 ||
-            nsfb->clip.x0 > poly_x1)
-		return true;
-
-	/* Find the top of the important area */
-	if (poly_y0 > nsfb->clip.y0)
-		y = poly_y0;
-	else
-		y = nsfb->clip.y0;
-
-	/* Find the bottom of the important area */
-	if (poly_y1 < nsfb->clip.y1)
-		y_max = poly_y1;
-	else
-		y_max = nsfb->clip.y1;
-
-	for (; y < y_max; y++) {
-		x1 = poly_x0 - 1;
-		/* For each row */
-		while (find_span(p, v, x1 + 1, y, &x0, &x1)) {
-			/* don't draw anything outside clip region */
-			if (x1 < nsfb->clip.x0)
-				continue;
-			else if (x0 < nsfb->clip.x0)
-				x0 = nsfb->clip.x0;
-			if (x0 > nsfb->clip.x1)
-				break;
-			else if (x1 > nsfb->clip.x1)
-				x1 = nsfb->clip.x1;
-
-			fline.x0 = x0;
-			fline.y0 = y;
-			fline.x1 = x1;
-			fline.y1 = y;
-
-			/* draw this filled span on current row */
-			nsfb->plotter_fns->line(nsfb, 1, &fline, &pen);
-
-			/* don't look for more spans if already at end of clip
-			 * region or polygon */
-			if (x1 == nsfb->clip.x1 || x1 == poly_x1)
-				break;
-		}
-	}
+    /* Can't plot polygons with 2 or fewer vertices */
+    if (n <= 2)
 	return true;
+
+    pen.stroke_colour = c;
+
+    /* Find polygon bounding box */
+    poly_x0 = poly_x1 = *p;
+    poly_y0 = poly_y1 = p[1];
+    for (i = 2; i < v; i = i + 2) {
+	j = i + 1;
+	if (p[i] < poly_x0)
+	    poly_x0 = p[i];
+	else if (p[i] > poly_x1)
+	    poly_x1 = p[i];
+	if (p[j] < poly_y0)
+	    poly_y0 = p[j];
+	else if (p[j] > poly_y1)
+	    poly_y1 = p[j];
+    }
+
+    /* Don't try to plot it if it's outside the clip rectangle */
+    if (nsfb->clip.y1 < poly_y0 ||
+	nsfb->clip.y0 > poly_y1 ||
+	nsfb->clip.x1 < poly_x0 ||
+	nsfb->clip.x0 > poly_x1)
+	return true;
+
+    /* Find the top of the important area */
+    if (poly_y0 > nsfb->clip.y0)
+	y = poly_y0;
+    else
+	y = nsfb->clip.y0;
+
+    /* Find the bottom of the important area */
+    if (poly_y1 < nsfb->clip.y1)
+	y_max = poly_y1;
+    else
+	y_max = nsfb->clip.y1;
+
+    for (; y < y_max; y++) {
+	x1 = poly_x0 - 1;
+	/* For each row */
+	while (find_span(p, v, x1 + 1, y, &x0, &x1)) {
+	    /* don't draw anything outside clip region */
+	    if (x1 < nsfb->clip.x0)
+		continue;
+	    else if (x0 < nsfb->clip.x0)
+		x0 = nsfb->clip.x0;
+	    if (x0 > nsfb->clip.x1)
+		break;
+	    else if (x1 > nsfb->clip.x1)
+		x1 = nsfb->clip.x1;
+
+	    fline.x0 = x0;
+	    fline.y0 = y;
+	    fline.x1 = x1;
+	    fline.y1 = y;
+
+	    /* draw this filled span on current row */
+	    nsfb->plotter_fns->line(nsfb, 1, &fline, &pen);
+
+	    /* don't look for more spans if already at end of clip
+	     * region or polygon */
+	    if (x1 == nsfb->clip.x1 || x1 == poly_x1)
+		break;
+	}
+    }
+    return true;
 }
 
 static bool
@@ -354,9 +354,9 @@ rectangle(nsfb_t *nsfb, nsfb_bbox_t *rect,
     pen.stroke_colour = c;
     pen.stroke_width = line_width;
     if (dotted || dashed) {
-	    pen.stroke_type = NFSB_PLOT_OPTYPE_PATTERN;
+	pen.stroke_type = NFSB_PLOT_OPTYPE_PATTERN;
     } else {
-	    pen.stroke_type = NFSB_PLOT_OPTYPE_SOLID;
+	pen.stroke_type = NFSB_PLOT_OPTYPE_SOLID;
     }
 
     side[0] = *rect;
@@ -543,7 +543,7 @@ static bool ellipse_fill(nsfb_t *nsfb, nsfb_bbox_t *ellipse, nsfb_colour_t c)
 
 
 
-/* copy an area of screen from one location to another.
+/* copy an area of surface from one location to another.
  *
  * @warning This implementation is woefully incomplete!
  */
@@ -563,7 +563,7 @@ copy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 
     nsfb_plot_add_rect(srcbox, dstbox, &allbox);
 
-    nsfb->frontend_rtns->claim(nsfb, &allbox);
+    nsfb->surface_rtns->claim(nsfb, &allbox);
 
     srcptr = (nsfb->ptr +
               (srcy * nsfb->linelen) +
@@ -595,21 +595,23 @@ copy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
         }
     }
 
-    nsfb->frontend_rtns->update(nsfb, dstbox);
+    nsfb->surface_rtns->update(nsfb, dstbox);
 
     return true;
 }
 
+
+
 static bool arc(nsfb_t *nsfb, int x, int y, int radius, int angle1, int angle2, nsfb_colour_t c)
 {
-        nsfb=nsfb;
-        x = x;
-        y = y;
-        radius = radius;
-        c = c;
-        angle1=angle1;
-        angle2=angle2;
-	return true;
+    nsfb=nsfb;
+    x = x;
+    y = y;
+    radius = radius;
+    c = c;
+    angle1=angle1;
+    angle2=angle2;
+    return true;
 }
 
 #define N_SEG 30
@@ -654,14 +656,14 @@ cubic_points(unsigned int pointc,
         point[cur_point].y = y;
         if ((point[cur_point].x != point[cur_point - 1].x) ||
             (point[cur_point].y != point[cur_point - 1].y))
-        cur_point++;
+	    cur_point++;
     }
 
     point[cur_point].x = curve->x1;
     point[cur_point].y = curve->y1;
     if ((point[cur_point].x != point[cur_point - 1].x) ||
         (point[cur_point].y != point[cur_point - 1].y))
-    cur_point++;
+	cur_point++;
 
     return cur_point;
 }
@@ -711,14 +713,14 @@ quadratic_points(unsigned int pointc,
         point[cur_point].y = y;
         if ((point[cur_point].x != point[cur_point - 1].x) ||
             (point[cur_point].y != point[cur_point - 1].y))
-        cur_point++;
+	    cur_point++;
     }
 
     point[cur_point].x = curve->x1;
     point[cur_point].y = curve->y1;
     if ((point[cur_point].x != point[cur_point - 1].x) ||
         (point[cur_point].y != point[cur_point - 1].y))
-    cur_point++;
+	cur_point++;
 
     return cur_point;
 }
@@ -854,34 +856,57 @@ bool select_plotters(nsfb_t *nsfb)
 {
     const nsfb_plotter_fns_t *table = NULL;
 
-    switch (nsfb->bpp) {
-        /*    case 1:
-        table = &_nsfb_1bpp_plotters;
-        break;
-        */
-    case 8:
-        table = &_nsfb_8bpp_plotters;
-        break;
+    switch (nsfb->format) {
 
-    case 16:
-        table = &_nsfb_16bpp_plotters;
-        break;
+    case NSFB_FMT_XBGR8888: /* 32bpp Blue Green Red */
+    case NSFB_FMT_ABGR8888: /* 32bpp Alpga Blue Green Red */
+	table = &_nsfb_32bpp_plotters;
+	nsfb->bpp = 32;
+	break;
 
-        /*
-    case 24:
-        table = &_nsfb_24bpp_plotters;
-        break;
-        */
-    case 32:
-        table = &_nsfb_32bpp_plotters;
-        break;
+    case NSFB_FMT_XRGB8888: /* 32bpp Red Green Blue */
+    case NSFB_FMT_ARGB8888: /* 32bpp Alpga Red Green Blue */
+	table = &_nsfb_32bpp_plotters;
+	nsfb->bpp = 32;
+	break;
 
+
+    case NSFB_FMT_RGB888: /* 24 bpp Alpga Red Green Blue */
+#ifdef ENABLE_24_BPP
+	table = &_nsfb_24bpp_plotters;
+	nsfb->bpp = 24;
+	break;
+#else
+	return false;
+#endif
+
+    case NSFB_FMT_ARGB1555: /* 16 bpp 555 */ 
+    case NSFB_FMT_RGB565: /* 16 bpp 565 */ 
+	table = &_nsfb_16bpp_plotters;
+	nsfb->bpp = 16;
+	break;
+
+    case NSFB_FMT_I8: /* 8bpp indexed */
+	table = &_nsfb_8bpp_plotters;
+	nsfb->bpp = 8;
+	break;
+
+    case NSFB_FMT_I1: /* black and white */
+#ifdef ENABLE_1_BPP
+	table = &_nsfb_1bpp_plotters; 
+	nsfb->bpp = 1
+	break;	
+#else
+	return false;
+#endif
+
+    case NSFB_FMT_ANY: /* No specific format - use surface default */
     default:
-        return false;
+	return false;
     }
 
     if (nsfb->plotter_fns != NULL)
-        free(nsfb->plotter_fns);
+	free(nsfb->plotter_fns);
 
     nsfb->plotter_fns = calloc(1, sizeof(nsfb_plotter_fns_t));
     memcpy(nsfb->plotter_fns, table, sizeof(nsfb_plotter_fns_t));
@@ -909,3 +934,10 @@ bool select_plotters(nsfb_t *nsfb)
 
     return true;
 }
+
+/*
+ * Local variables:
+ *  c-basic-offset: 4
+ *  tab-width: 8
+ * End:
+ */

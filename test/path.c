@@ -39,7 +39,12 @@ static int fill_shape(nsfb_plot_pathop_t *path, int xoff, int yoff)
 
 int main(int argc, char **argv)
 {
+    const char *fename;
+    enum nsfb_type_e fetype;
     nsfb_t *nsfb;
+
+    int waitloop = 3;
+
     nsfb_event_t event;
     nsfb_bbox_t box;
     uint8_t *fbptr;
@@ -47,25 +52,35 @@ int main(int argc, char **argv)
     nsfb_plot_pen_t pen;
     nsfb_plot_pathop_t path[20];
 
-    UNUSED(argc);
-    UNUSED(argv);
+    if (argc < 2) {
+        fename="sdl";
+    } else {
+        fename = argv[1];
+    }
 
-    nsfb = nsfb_init(NSFB_FRONTEND_SDL);
-    if (nsfb == NULL) {
-        fprintf(stderr, "Unable to initialise nsfb with SDL frontend\n");
+    fetype = nsfb_type_from_name(fename);
+    if (fetype == NSFB_SURFACE_NONE) {
+        fprintf(stderr, "Unable to convert \"%s\" to nsfb surface type\n", fename);
         return 1;
     }
 
-    if (nsfb_init_frontend(nsfb) == -1) {
-        fprintf(stderr, "Unable to initialise nsfb frontend\n");
+    nsfb = nsfb_new(fetype);
+    if (nsfb == NULL) {
+        fprintf(stderr, "Unable to allocate \"%s\" nsfb surface\n", fename);
         return 2;
+    }
+
+    if (nsfb_init(nsfb) == -1) {
+        fprintf(stderr, "Unable to initialise nsfb surface\n");
+        nsfb_free(nsfb);
+        return 4;
     }
 
     /* get the geometry of the whole screen */
     box.x0 = box.y0 = 0;
     nsfb_get_geometry(nsfb, &box.x1, &box.y1, NULL);
 
-    nsfb_get_framebuffer(nsfb, &fbptr, &fbstride);
+    nsfb_get_buffer(nsfb, &fbptr, &fbstride);
 
     /* claim the whole screen for update */
     nsfb_claim(nsfb, &box);
@@ -87,11 +102,31 @@ int main(int argc, char **argv)
 
     nsfb_plot_path(nsfb, fill_shape(path, 100, 350), path, &pen);
 
-
     nsfb_update(nsfb, &box);
-    
-    while (event.type != NSFB_EVENT_CONTROL)
-        nsfb_event(nsfb, &event, -1);
+
+    /* wait for quit event or timeout */
+    while (waitloop > 0) {
+	if (nsfb_event(nsfb, &event, 1000)  == false) {
+	    break;
+	}
+	if (event.type == NSFB_EVENT_CONTROL) {
+	    if (event.value.controlcode == NSFB_CONTROL_TIMEOUT) {
+		/* timeout */
+		waitloop--;
+	    } else if (event.value.controlcode == NSFB_CONTROL_QUIT) {
+		break;
+	    }
+	}
+    }
+
+    nsfb_free(nsfb);
 
     return 0;
 }
+
+/*
+ * Local variables:
+ *  c-basic-offset: 4
+ *  tab-width: 8
+ * End:
+ */

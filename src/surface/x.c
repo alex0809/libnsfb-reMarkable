@@ -29,7 +29,7 @@
 #include "libnsfb_plot_util.h"
 
 #include "nsfb.h"
-#include "frontend.h"
+#include "surface.h"
 #include "plot.h"
 #include "cursor.h"
 
@@ -390,7 +390,7 @@ xkeysym_to_nsfbkeycode(xcb_keysym_t ks)
   static void
   set_palette(nsfb_t *nsfb)
   {
-  X_Surface *x_screen = nsfb->frontend_priv;
+  X_Surface *x_screen = nsfb->surface_priv;
   X_Color palette[256];
   int rloop, gloop, bloop;
   int loop = 0;
@@ -469,7 +469,7 @@ update_and_redraw_pixmap(xstate_t *xstate, int x, int y, int width, int height)
 static bool
 xcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 {
-    xstate_t *xstate = nsfb->frontend_priv;
+    xstate_t *xstate = nsfb->surface_priv;
     nsfb_bbox_t allbox;
     struct nsfb_cursor_s *cursor = nsfb->cursor;
     uint8_t *srcptr;
@@ -564,16 +564,17 @@ xcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 }
 
 
-static int x_set_geometry(nsfb_t *nsfb, int width, int height, int bpp)
+static int 
+x_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
 {
-    if (nsfb->frontend_priv != NULL)
+    if (nsfb->surface_priv != NULL)
         return -1; /* if were already initialised fail */
 
     nsfb->width = width;
     nsfb->height = height;
-    nsfb->bpp = bpp;
+    nsfb->format = format;
 
-    /* select default sw plotters for bpp */
+    /* select default sw plotters for format */
     select_plotters(nsfb);
 
     nsfb->plotter_fns->copy = xcopy;
@@ -588,6 +589,7 @@ find_format(xcb_connection_t * c, uint8_t depth, uint8_t bpp)
     const xcb_setup_t *setup = xcb_get_setup(c);
     xcb_format_t *fmt = xcb_setup_pixmap_formats(setup);
     xcb_format_t *fmtend = fmt + xcb_setup_pixmap_formats_length(setup);
+
     for(; fmt != fmtend; ++fmt) {
         if((fmt->depth == depth) && (fmt->bits_per_pixel == bpp)) {
             return fmt;
@@ -756,7 +758,7 @@ static int x_initialise(nsfb_t *nsfb)
     uint32_t mask;
     uint32_t values[3];
     xcb_size_hints_t *hints;
-    xstate_t *xstate = nsfb->frontend_priv;
+    xstate_t *xstate = nsfb->surface_priv;
     xcb_cursor_t blank_cursor;
 
     if (xstate != NULL)
@@ -801,7 +803,7 @@ static int x_initialise(nsfb_t *nsfb)
     }
 
     /* ensure plotting information is stored */
-    nsfb->frontend_priv = xstate;
+    nsfb->surface_priv = xstate;
     nsfb->ptr = xstate->image->data;
     nsfb->linelen = xstate->image->stride;
 
@@ -867,7 +869,7 @@ static int x_initialise(nsfb_t *nsfb)
 
 static int x_finalise(nsfb_t *nsfb)
 {
-    xstate_t *xstate = nsfb->frontend_priv;
+    xstate_t *xstate = nsfb->surface_priv;
     if (xstate == NULL)
         return 0;
 
@@ -890,7 +892,7 @@ static bool x_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     xcb_button_press_event_t *ebp;
     xcb_key_press_event_t *ekp;
     xcb_key_press_event_t *ekr;
-    xstate_t *xstate = nsfb->frontend_priv;
+    xstate_t *xstate = nsfb->surface_priv;
 
     if (xstate == NULL)
         return false;
@@ -916,8 +918,10 @@ static bool x_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 
             retval = select(confd + 1, &rfds, NULL, NULL, &tv);
             if (retval == 0) {
-                return false; /* timeout, nothing happened */
-
+		    /* timeout, nothing happened */
+		    event->type = NSFB_EVENT_CONTROL;
+		    event->value.controlcode = NSFB_CONTROL_TIMEOUT;
+		    return true;
             }
         }
         e = xcb_wait_for_event(xstate->connection);
@@ -1051,7 +1055,7 @@ static int x_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
 static int
 x_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 {
-    xstate_t *xstate = nsfb->frontend_priv;
+    xstate_t *xstate = nsfb->surface_priv;
     nsfb_bbox_t redraw;
     nsfb_bbox_t fbarea;
 
@@ -1083,7 +1087,7 @@ x_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 
 static int x_update(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
-    xstate_t *xstate = nsfb->frontend_priv;
+    xstate_t *xstate = nsfb->surface_priv;
     struct nsfb_cursor_s *cursor = nsfb->cursor;
 
     if ((cursor != NULL) &&
@@ -1096,7 +1100,7 @@ static int x_update(nsfb_t *nsfb, nsfb_bbox_t *box)
     return 0;
 }
 
-const nsfb_frontend_rtns_t x_rtns = {
+const nsfb_surface_rtns_t x_rtns = {
     .initialise = x_initialise,
     .finalise = x_finalise,
     .input = x_input,
@@ -1106,4 +1110,11 @@ const nsfb_frontend_rtns_t x_rtns = {
     .geometry = x_set_geometry,
 };
 
-NSFB_FRONTEND_DEF(x, NSFB_FRONTEND_X, &x_rtns)
+NSFB_SURFACE_DEF(x, NSFB_SURFACE_X, &x_rtns)
+
+/*
+ * Local variables:
+ *  c-basic-offset: 4
+ *  tab-width: 8
+ * End:
+ */

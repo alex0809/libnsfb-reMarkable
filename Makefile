@@ -20,6 +20,7 @@ CFLAGS := -g -std=c99 -D_BSD_SOURCE -I$(CURDIR)/include/ \
 
 NSFB_XCB_PKG_NAMES := xcb xcb-icccm xcb-image xcb-keysyms
 
+$(eval $(call pkg_config_package_available,NSFB_VNC_AVAILABLE,libvncserver))
 $(eval $(call pkg_config_package_available,NSFB_SDL_AVAILABLE,sdl))
 $(eval $(call pkg_config_package_available,NSFB_XCB_AVAILABLE,$(NSFB_XCB_PKG_NAMES)))
 
@@ -42,6 +43,13 @@ ifeq ($(NSFB_XCB_AVAILABLE),yes)
 
   REQUIRED_PKGS := $(REQUIRED_PKGS) $(NSFB_XCB_PKG_NAMES)
 endif
+
+ifeq ($(NSFB_VNC_AVAILABLE),yes)
+  $(eval $(call pkg_config_package_add_flags,libvncserver,CFLAGS))
+  $(eval $(call pkg_config_package_add_flags,libvncserver,TESTCFLAGS,TESTLDFLAGS))
+
+  REQUIRED_PKGS := $(REQUIRED_PKGS) libvncserver
+endif 
 
 TESTLDFLAGS := -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive $(TESTLDFLAGS)
 
