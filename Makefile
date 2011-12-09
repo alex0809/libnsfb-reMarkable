@@ -15,8 +15,8 @@ WARNFLAGS := -Wall -Wextra -Wundef -Wpointer-arith -Wcast-align \
 	-Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes \
 	-Wmissing-declarations -Wnested-externs -Werror -pedantic \
 	-Wno-overlength-strings # For nsglobe.c
-CFLAGS := -g -std=c99 -D_BSD_SOURCE -I$(CURDIR)/include/ \
-	-I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS)
+CFLAGS := -g -std=c99 -D_BSD_SOURCE -D_POSIX_C_SOURCE=200112L \
+	-I$(CURDIR)/include/ -I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS)
 
 NSFB_XCB_PKG_NAMES := xcb xcb-icccm xcb-image xcb-keysyms
 
