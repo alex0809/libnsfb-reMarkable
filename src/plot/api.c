@@ -148,7 +148,7 @@ nsfb_plot_copy(nsfb_t *srcfb,
     }
 
     if ((srcfb->width == 1) && (srcfb->height == 1)) {
-	srccol = *(nsfb_colour_t *)(srcfb->ptr);
+	srccol = *(nsfb_colour_t *)(void *)(srcfb->ptr);
 	
 	/* check for completely transparent */
 	if ((srccol & 0xff000000) == 0)
@@ -159,7 +159,7 @@ nsfb_plot_copy(nsfb_t *srcfb,
 	    return dstfb->plotter_fns->fill(dstfb, dstbox, srccol);
     }
 
-    return dstfb->plotter_fns->bitmap(dstfb, dstbox, (const nsfb_colour_t *)srcfb->ptr, srcfb->width, srcfb->height, (srcfb->linelen * 8) / srcfb->bpp, trans);
+    return dstfb->plotter_fns->bitmap(dstfb, dstbox, (const nsfb_colour_t *)(void *)srcfb->ptr, srcfb->width, srcfb->height, (srcfb->linelen * 8) / srcfb->bpp, trans);
     
 }
 
