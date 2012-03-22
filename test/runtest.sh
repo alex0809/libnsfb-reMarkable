@@ -2,7 +2,7 @@
 
 TEST_PATH=$1
 
-TEST_FRONTEND=x
+TEST_FRONTEND=linux
 
 ${TEST_PATH}/test_frontend ${TEST_FRONTEND}
 ${TEST_PATH}/test_plottest ${TEST_FRONTEND}

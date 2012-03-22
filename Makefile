@@ -51,7 +51,7 @@ ifeq ($(NSFB_VNC_AVAILABLE),yes)
   REQUIRED_PKGS := $(REQUIRED_PKGS) libvncserver
 endif 
 
-TESTLDFLAGS := -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive $(TESTLDFLAGS)
+TESTLDFLAGS := -lm -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive $(TESTLDFLAGS)
 
 include build/makefiles/Makefile.top
 

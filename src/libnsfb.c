@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "libnsfb.h"
 #include "libnsfb_plot.h"
@@ -89,6 +90,22 @@ nsfb_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format
 	    format = nsfb->format; 
 
     return nsfb->surface_rtns->geometry(nsfb, width, height, format);
+}
+
+/* exported interface documented in libnsfb.h */
+int nsfb_set_parameters(nsfb_t *nsfb, const char *parameters)
+{
+    if ((parameters == NULL) || (*parameters == 0)) {
+	return -1;
+    }
+
+    if (nsfb->parameters != NULL) {
+	free(nsfb->parameters);
+    }
+
+    nsfb->parameters = strdup(parameters);
+
+    return nsfb->surface_rtns->parameters(nsfb, parameters);
 }
 
 /* exported interface documented in libnsfb.h */

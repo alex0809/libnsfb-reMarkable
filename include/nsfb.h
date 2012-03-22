@@ -20,12 +20,10 @@ struct nsfb_s {
     int width; /**< Visible width. */
     int height; /**< Visible height. */
 
-    int bpp;
+    char *parameters;
 
     enum nsfb_format_e format; /**< Framebuffer format  */
-
-    int refresh; /**< Desired refresh rate for physical displays. */
-    char *output_dev; /**> Path to output device for surfaces that require it. */
+    int bpp; /**< Bits per pixel - distinct from format */
 
     uint8_t *ptr; /**< Base of video memory. */
     int linelen; /**< length of a video line. */

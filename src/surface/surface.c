@@ -17,6 +17,8 @@
 
 #define MAX_SURFACES 16
 
+#define UNUSED(x) ((x) = (x))
+
 struct nsfb_surface_s {
     enum nsfb_type_e type;
     const nsfb_surface_rtns_t *rtns;
@@ -56,22 +58,29 @@ static int surface_defaults(nsfb_t *nsfb)
 
 static int surface_claim(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
-    nsfb=nsfb;
-    box=box;
+    UNUSED(nsfb);
+    UNUSED(box);
     return 0;
 }
 
 static int surface_update(nsfb_t *nsfb, nsfb_bbox_t *box)
 {
-    nsfb=nsfb;
-    box=box;
+    UNUSED(nsfb);
+    UNUSED(box);
     return 0;
 }
 
 static int surface_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 {
-    nsfb=nsfb;
-    cursor=cursor;
+    UNUSED(nsfb);
+    UNUSED(cursor);
+    return 0;
+}
+
+static int surface_parameters(nsfb_t *nsfb, const char *parameters)
+{
+    UNUSED(nsfb);
+    UNUSED(parameters);
     return 0;
 }
 
@@ -117,6 +126,10 @@ nsfb_surface_get_rtns(enum nsfb_type_e type)
 
 	    if (rtns->cursor == NULL) {
 		rtns->cursor = surface_cursor;
+	    }
+
+	    if (rtns->parameters == NULL) {
+		rtns->parameters = surface_parameters;
 	    }
             
             break;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ * Copyright 2012 Vincent Sanders <vince@simtec.co.uk>
  *
  * This file is part of libnsfb, http://www.netsurf-browser.org/
  * Licenced under the MIT License,
@@ -8,6 +8,18 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+#include <string.h>
+#include <errno.h>
+#include <unistd.h>
+#include <sys/mman.h>
+
+#include <linux/fb.h>
+
 
 #include "libnsfb.h"
 #include "libnsfb_event.h"
@@ -20,39 +32,153 @@
 #include "cursor.h"
 
 
+
 #define UNUSED(x) ((x) = (x))
+
+#define FB_NAME "/dev/fb0"
+
+struct lnx_priv {
+    struct fb_fix_screeninfo FixInfo;
+    struct fb_var_screeninfo VarInfo;
+    int fd;
+};
 
 static int linux_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
 {
-    if (nsfb->surface_priv != NULL)
+    if (nsfb->surface_priv != NULL) {
         return -1; /* if we are already initialised fail */
+    }
 
     nsfb->width = width;
     nsfb->height = height;
     nsfb->format = format;
 
     /* select default sw plotters for bpp */
-    select_plotters(nsfb);
+    if (select_plotters(nsfb) != true) {
+	return -1;
+    }
 
     return 0;
 }
 
+static enum nsfb_format_e
+format_from_lstate(struct lnx_priv *lstate) 
+{
+    enum nsfb_format_e fmt = NSFB_FMT_ANY;
+
+    switch(lstate->VarInfo.bits_per_pixel) {
+    case 32:
+	if (lstate->VarInfo.transp.length == 0)
+	    fmt = NSFB_FMT_XBGR8888;
+	else
+	    fmt = NSFB_FMT_ABGR8888;
+	break;
+
+    case 24:
+	fmt = NSFB_FMT_RGB888;
+	break;
+
+    case 16:
+	fmt = NSFB_FMT_RGB565;
+	break;
+
+    case 8:
+	fmt = NSFB_FMT_I8;
+	break;
+
+    case 1:
+	fmt = NSFB_FMT_RGB565;
+	break;
+
+    }
+
+
+    return fmt;
+}
+
 static int linux_initialise(nsfb_t *nsfb)
 {
+    int iFrameBufferSize;
+    struct lnx_priv *lstate;
+    enum nsfb_format_e lformat;
+
     if (nsfb->surface_priv != NULL)
-        return -1;
+	return -1;
 
-    /* sanity checked depth. */
-    if ((nsfb->bpp != 32) && (nsfb->bpp != 16) && (nsfb->bpp != 8))
-        return -1;
+    lstate = calloc(1, sizeof(struct lnx_priv));
 
+    /* Open the framebuffer device in read write */
+    lstate->fd = open(FB_NAME, O_RDWR);
+    if (lstate->fd < 0) {
+	printf("Unable to open %s.\n", FB_NAME);
+	return -1;
+    }
+
+    /* Do Ioctl. Retrieve fixed screen info. */
+    if (ioctl(lstate->fd, FBIOGET_FSCREENINFO, &lstate->FixInfo) < 0) {
+	printf("get fixed screen info failed: %s\n",
+	       strerror(errno));
+	close(lstate->fd);
+	free(lstate);
+	return -1;
+    }
+
+    /* Do Ioctl. Get the variable screen info. */
+    if (ioctl(lstate->fd, FBIOGET_VSCREENINFO, &lstate->VarInfo) < 0) {
+	printf("Unable to retrieve variable screen info: %s\n",
+	       strerror(errno));
+	close(lstate->fd);
+	free(lstate);
+	return -1;
+    }
+
+    /* Calculate the size to mmap */
+    iFrameBufferSize = lstate->FixInfo.line_length * lstate->VarInfo.yres;
+
+    /* Now mmap the framebuffer. */
+    nsfb->ptr = mmap(NULL, iFrameBufferSize, PROT_READ | PROT_WRITE,
+			 MAP_SHARED, lstate->fd, 0);
+    if (nsfb->ptr == NULL) {
+	printf("mmap failed:\n");
+	close(lstate->fd);
+	free(lstate);
+	return -1;
+    }
+
+    nsfb->linelen = lstate->FixInfo.line_length;
+
+    nsfb->width = lstate->VarInfo.xres;
+    nsfb->height = lstate->VarInfo.yres;
+    
+    lformat = format_from_lstate(lstate);
+
+    if (nsfb->format != lformat) {
+	nsfb->format = lformat;
+
+	/* select default sw plotters for format */
+	if (select_plotters(nsfb) != true) {
+	    munmap(nsfb->ptr, 0);
+	    close(lstate->fd);
+	    free(lstate);
+	    return -1;
+	}
+    }
+
+    nsfb->surface_priv = lstate;
 
     return 0;
 }
 
 static int linux_finalise(nsfb_t *nsfb)
 {
-    UNUSED(nsfb);
+    struct lnx_priv *lstate = nsfb->surface_priv;
+
+    if (lstate != NULL) {
+	munmap(nsfb->ptr, 0);
+	close(lstate->fd);
+	free(lstate);
+    }
+
     return 0;
 }
 
@@ -133,3 +259,10 @@ const nsfb_surface_rtns_t linux_rtns = {
 };
 
 NSFB_SURFACE_DEF(linux, NSFB_SURFACE_LINUX, &linux_rtns)
+
+/*
+ * Local variables:
+ *  c-basic-offset: 4
+ *  tab-width: 8
+ * End:
+ */

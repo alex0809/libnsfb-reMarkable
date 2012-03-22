@@ -118,14 +118,25 @@ int nsfb_update(nsfb_t *nsfb, nsfb_bbox_t *box);
  */
 int nsfb_get_geometry(nsfb_t *nsfb, int *width, int *height, enum nsfb_format_e *format);
 
-/** Alter the geometry of a framebuffer context
+/** Alter the geometry of a surface
  *
  * @param nsfb The context to alter.
  * @param width The new display width.
  * @param height The new display height.
- * @param bpp The new display depth. 
+ * @param format The desired surface format.
  */
 int nsfb_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format);
+
+/** Set parameters a surface
+ *
+ * Some surface types can take additional parameters for
+ * attributes. For example the linux surface uses this to allow the
+ * setting of a different output device
+ *
+ * @param nsfb The surface to alter.
+ * @param parameters The parameters for the surface.
+ */
+int nsfb_set_parameters(nsfb_t *nsfb, const char *parameters);
 
 /** Obtain the buffer memory base and stride. 
  *

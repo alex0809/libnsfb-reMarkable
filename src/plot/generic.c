@@ -858,20 +858,20 @@ bool select_plotters(nsfb_t *nsfb)
 
     switch (nsfb->format) {
 
-    case NSFB_FMT_XBGR8888: /* 32bpp Blue Green Red */
-    case NSFB_FMT_ABGR8888: /* 32bpp Alpga Blue Green Red */
+    case NSFB_FMT_XBGR8888: /* 32bpp Unused Blue Green Red */
+    case NSFB_FMT_ABGR8888: /* 32bpp Alpha Blue Green Red */
 	table = &_nsfb_32bpp_plotters;
 	nsfb->bpp = 32;
 	break;
 
-    case NSFB_FMT_XRGB8888: /* 32bpp Red Green Blue */
-    case NSFB_FMT_ARGB8888: /* 32bpp Alpga Red Green Blue */
+    case NSFB_FMT_XRGB8888: /* 32bpp Unused Red Green Blue */
+    case NSFB_FMT_ARGB8888: /* 32bpp Alpha Red Green Blue */
 	table = &_nsfb_32bpp_plotters;
 	nsfb->bpp = 32;
 	break;
 
 
-    case NSFB_FMT_RGB888: /* 24 bpp Alpga Red Green Blue */
+    case NSFB_FMT_RGB888: /* 24 bpp Alpha Red Green Blue */
 #ifdef ENABLE_24_BPP
 	table = &_nsfb_24bpp_plotters;
 	nsfb->bpp = 24;
