@@ -33,7 +33,7 @@
 #include "plot.h"
 #include "cursor.h"
 
-#if defined(NEED_HINTS_ALLOC)
+#if defined(NSFB_NEED_HINTS_ALLOC)
 static xcb_size_hints_t *
 xcb_alloc_size_hints(void)
 {
@@ -45,6 +45,17 @@ xcb_free_size_hints(xcb_size_hints_t *hints)
 {
     free(hints);
 }
+#endif
+
+#if defined(NSFB_NEED_ICCCM_API_PREFIX)
+#define xcb_size_hints_set_max_size xcb_icccm_size_hints_set_max_size
+#define xcb_size_hints_set_min_size xcb_icccm_size_hints_set_min_size
+#define xcb_set_wm_size_hints       xcb_icccm_set_wm_size_hints
+#endif
+
+#if (NSFB_XCBPROTO_MAJOR_VERSION > 1) || \
+    (NSFB_XCBPROTO_MAJOR_VERSION == 1 && NSFB_XCBPROTO_MINOR_VERSION >= 6)
+#define WM_NORMAL_HINTS XCB_ATOM_WM_NORMAL_HINTS
 #endif
 
 #define X_BUTTON_LEFT 1

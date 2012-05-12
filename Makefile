@@ -32,10 +32,30 @@ ifeq ($(NSFB_SDL_AVAILABLE),yes)
 endif 
 
 ifeq ($(NSFB_XCB_AVAILABLE),yes)
-  $(eval $(call pkg_config_package_min_version,NSFB_XCB_NEW_API,xcb,0.23))
+  # Size hint allocators were removed in xcb-icccm 0.3.0
+  $(eval $(call pkg_config_package_min_version,NSFB_XCB_ICCCM_SIZE_HINTS,xcb-icccm,0.3.0))
+  ifeq ($(NSFB_XCB_ICCCM_SIZE_HINTS),yes)
+    CFLAGS := $(CFLAGS) -DNSFB_NEED_HINTS_ALLOC
+  endif
 
-  ifeq ($(NSFB_XCB_NEW_API),yes)
-    CFLAGS := $(CFLAGS) -DNEED_HINTS_ALLOC
+  # xcb-icccm 0.3.8 introduced an additional "icccm_" in function names
+  $(eval $(call pkg_config_package_min_version,NSFB_XCB_ICCCM_API_PREFIX,xcb-icccm,0.3.8))
+  ifeq ($(NSFB_XCB_ICCCM_API_PREFIX),yes)
+    CFLAGS := $(CFLAGS) -DNSFB_NEED_ICCCM_API_PREFIX
+  endif
+
+  # xcbproto 1.6 incorporated atoms previously found in xcb_atom
+  # However, libxcb <1.3 did not report xcbproto versions. Assume xcbproto 1.5 in this case.
+  $(eval $(call pkg_config_package_min_version,NSFB_HAVE_MODERN_XCB,xcb,1.3))
+  ifeq ($(NSFB_HAVE_MODERN_XCB),yes)
+    $(eval $(call pkg_config_get_variable,NSFB_XCBPROTO_VERSION,xcb,xcbproto_version))
+    NSFB_XCBPROTO_MAJOR_VERSION := $(word 1,$(subst ., ,$(NSFB_XCBPROTO_VERSION)))
+    NSFB_XCBPROTO_MINOR_VERSION := $(word 2,$(subst ., ,$(NSFB_XCBPROTO_VERSION)))
+    CFLAGS := $(CFLAGS) -DNSFB_XCBPROTO_MAJOR_VERSION=$(NSFB_XCBPROTO_MAJOR_VERSION)
+    CFLAGS := $(CFLAGS) -DNSFB_XCBPROTO_MINOR_VERSION=$(NSFB_XCBPROTO_MINOR_VERSION)
+  else
+    CFLAGS := $(CFLAGS) -DNSFB_XCBPROTO_MAJOR_VERSION=1
+    CFLAGS := $(CFLAGS) -DNSFB_XCBPROTO_MINOR_VERSION=5
   endif
 
   $(eval $(call pkg_config_package_add_flags,$(NSFB_XCB_PKG_NAMES),CFLAGS))
