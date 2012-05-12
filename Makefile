@@ -62,6 +62,11 @@ ifeq ($(NSFB_XCB_AVAILABLE),yes)
   $(eval $(call pkg_config_package_add_flags,$(NSFB_XCB_PKG_NAMES),TESTCFLAGS,TESTLDFLAGS))
 
   REQUIRED_PKGS := $(REQUIRED_PKGS) $(NSFB_XCB_PKG_NAMES)
+
+  $(eval $(call pkg_config_package_available,NSFB_XCB_UTIL_AVAILABLE,xcb-util))
+  ifeq ($(NSFB_XCB_UTILS_AVAILABLE),yes)
+    REQUIRED_PKGS := $(REQUIRED_PKGS) xcb-util
+  endif
 endif
 
 ifeq ($(NSFB_VNC_AVAILABLE),yes)
