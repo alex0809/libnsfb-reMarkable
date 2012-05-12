@@ -64,7 +64,7 @@ ifeq ($(NSFB_XCB_AVAILABLE),yes)
   REQUIRED_PKGS := $(REQUIRED_PKGS) $(NSFB_XCB_PKG_NAMES)
 
   $(eval $(call pkg_config_package_available,NSFB_XCB_UTIL_AVAILABLE,xcb-util))
-  ifeq ($(NSFB_XCB_UTILS_AVAILABLE),yes)
+  ifeq ($(NSFB_XCB_UTIL_AVAILABLE),yes)
     REQUIRED_PKGS := $(REQUIRED_PKGS) xcb-util
   endif
 endif
