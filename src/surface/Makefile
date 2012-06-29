@@ -13,4 +13,4 @@ ifeq ($(NSFB_VNC_AVAILABLE),yes)
   DIR_SOURCES := $(DIR_SOURCES) vnc.c
 endif
 
-include build/makefiles/Makefile.subdir
+include $(NSBUILD)/Makefile.subdir

@@ -5,7 +5,9 @@ COMPONENT_VERSION := 0.0.2
 COMPONENT_TYPE ?= lib-static
 
 # Setup the tooling
-include build/makefiles/Makefile.tools
+PREFIX ?= /opt/netsurf
+NSSHARED ?= $(PREFIX)/share/netsurf-buildsystem
+include $(NSSHARED)/makefiles/Makefile.tools
 
 # Reevaluate when used, as BUILDDIR won't be defined yet
 TESTRUNNER = test/runtest.sh $(BUILDDIR) $(EXEEXT)
@@ -78,7 +80,7 @@ endif
 
 TESTLDFLAGS := -lm -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive $(TESTLDFLAGS)
 
-include build/makefiles/Makefile.top
+include $(NSBUILD)/Makefile.top
 
 # Extra installation rules
 I := /include
