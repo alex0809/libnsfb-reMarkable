@@ -143,19 +143,16 @@ glyph1(nsfb_t *nsfb,
         int xoff, yoff; /* x and y offset into image */
         int x = loc->x0;
         int y = loc->y0;
-        int width = loc->x1 - loc->x0;
-        int height = loc->y1 - loc->y0;
+        int width;
+        int height;
         const uint8_t *fntd;
         uint8_t row;
 
         if (!nsfb_plot_clip_ctx(nsfb, loc))
                 return true;
 
-        if (height > (loc->y1 - loc->y0))
-                height = (loc->y1 - loc->y0);
-
-        if (width > (loc->x1 - loc->x0))
-                width = (loc->x1 - loc->x0);
+        height = loc->y1 - y;
+        width = loc->x1 - x;
 
         xoff = loc->x0 - x;
         yoff = loc->y0 - y;
