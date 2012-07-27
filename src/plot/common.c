@@ -138,15 +138,17 @@ glyph1(nsfb_t *nsfb,
        nsfb_colour_t c)
 {
         PLOT_TYPE *pvideo;
+        PLOT_TYPE const *pvideo_limit;
         PLOT_TYPE fgcol;
-        int xloop, yloop;
+        int xloop;
         int xoff, yoff; /* x and y offset into image */
         int x = loc->x0;
         int y = loc->y0;
         int width;
         int height;
-        const uint8_t *fntd;
-        uint8_t row;
+        const size_t line_len = PLOT_LINELEN(nsfb->linelen);
+        const int first_col = 1 << (loc->x1 - loc->x0 - 1);
+        const uint8_t *row;
 
         if (!nsfb_plot_clip_ctx(nsfb, loc))
                 return true;
@@ -157,26 +159,22 @@ glyph1(nsfb_t *nsfb,
         xoff = loc->x0 - x;
         yoff = loc->y0 - y;
 
-        pvideo = get_xy_loc(nsfb, loc->x0, loc->y0);
-
         fgcol = colour_to_pixel(nsfb, c);
 
-        for (yloop = yoff; yloop < height; yloop++) {
-                fntd = pixel + (yloop * (pitch>>3)) + (xoff>>3);
-                row = (*fntd++) << (xoff & 3);
-                for (xloop = xoff; xloop < width ; xloop++) {
-                        if (((xloop % 8) == 0) && (xloop != 0)) {
-                                row = *fntd++;
-                        }
+        pitch >>= 3; /* bits to bytes */
 
-                        if ((row & 0x80) != 0) {
+        pvideo = get_xy_loc(nsfb, x, loc->y0);
+        pvideo_limit = pvideo + line_len * (height - yoff);
+        row = pixel + yoff * pitch;
+
+        for (; pvideo < pvideo_limit; pvideo += line_len) {
+                for (xloop = xoff; xloop < width; xloop++) {
+
+                        if ((*row & (first_col >> xloop)) != 0) {
                                 *(pvideo + xloop) = fgcol;
                         }
-                        row = row << 1;
-
                 }
-
-                pvideo += PLOT_LINELEN(nsfb->linelen);
+                row += pitch;
         }
 
         return true;
