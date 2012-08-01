@@ -36,7 +36,9 @@ bool nsfb_cursor_init(nsfb_t *nsfb)
     return true;
 }
 
-bool nsfb_cursor_set(nsfb_t *nsfb, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride)
+bool nsfb_cursor_set(nsfb_t *nsfb, const nsfb_colour_t *pixel,
+        int bmp_width, int bmp_height, int bmp_stride,
+        int hotspot_x, int hotspot_y)
 {
     if (nsfb->cursor == NULL) 
         return false;
@@ -47,6 +49,9 @@ bool nsfb_cursor_set(nsfb_t *nsfb, const nsfb_colour_t *pixel, int bmp_width, in
     nsfb->cursor->bmp_stride = bmp_stride;
     nsfb->cursor->loc.x1 = nsfb->cursor->loc.x0 + nsfb->cursor->bmp_width;
     nsfb->cursor->loc.y1 = nsfb->cursor->loc.y0 + nsfb->cursor->bmp_height;
+
+    nsfb->cursor->hotspot_x = hotspot_x;
+    nsfb->cursor->hotspot_y = hotspot_y;
  
     return nsfb->surface_rtns->cursor(nsfb, nsfb->cursor);
 }
@@ -81,6 +86,12 @@ bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
     nsfb->plotter_fns->get_clip(nsfb, &sclip);
     nsfb->plotter_fns->set_clip(nsfb, NULL);
 
+    /* offset cursor rect for hotspot */
+    cursor->loc.x0 -= cursor->hotspot_x;
+    cursor->loc.y0 -= cursor->hotspot_y;
+    cursor->loc.x1 -= cursor->hotspot_x;
+    cursor->loc.y1 -= cursor->hotspot_y;
+
     cursor->savloc = cursor->loc;
 
     cursor->sav_width = cursor->savloc.x1 - cursor->savloc.x0;
@@ -91,11 +102,12 @@ bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
         cursor->sav = realloc(cursor->sav, sav_size);
         cursor->sav_size = sav_size;
     }
- 
-    nsfb->plotter_fns->readrect(nsfb, &cursor->savloc, cursor->sav );
+
+    nsfb->plotter_fns->readrect(nsfb, &cursor->savloc, cursor->sav);
     cursor->sav_width = cursor->savloc.x1 - cursor->savloc.x0;
     cursor->sav_height = cursor->savloc.y1 - cursor->savloc.y0;
-        
+
+    nsfb->plotter_fns->set_clip(nsfb, NULL);
     nsfb->plotter_fns->bitmap(nsfb, 
                               &cursor->loc,  
                               cursor->pixel, 
@@ -103,6 +115,12 @@ bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
                               cursor->bmp_height, 
                               cursor->bmp_stride, 
                               true);
+
+    /* undo hotspot offset */
+    cursor->loc.x0 += cursor->hotspot_x;
+    cursor->loc.y0 += cursor->hotspot_y;
+    cursor->loc.x1 += cursor->hotspot_x;
+    cursor->loc.y1 += cursor->hotspot_y;
 
     nsfb->plotter_fns->set_clip(nsfb, &sclip);
 

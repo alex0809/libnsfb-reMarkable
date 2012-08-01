@@ -636,8 +636,13 @@ sdl_cursor(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
     nsfb_bbox_t fbarea;
 
     if ((cursor != NULL) && (cursor->plotted == true)) {
+        nsfb_bbox_t loc_shift = cursor->loc;
+        loc_shift.x0 -= cursor->hotspot_x;
+        loc_shift.y0 -= cursor->hotspot_y;
+        loc_shift.x1 -= cursor->hotspot_x;
+        loc_shift.y1 -= cursor->hotspot_y;
 
-        nsfb_plot_add_rect(&cursor->savloc, &cursor->loc, &redraw);
+        nsfb_plot_add_rect(&cursor->savloc, &loc_shift, &redraw);
 
         /* screen area */
         fbarea.x0 = 0;

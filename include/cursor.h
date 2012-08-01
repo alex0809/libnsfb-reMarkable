@@ -20,6 +20,8 @@ struct nsfb_cursor_s {
     int bmp_width;
     int bmp_height;
     int bmp_stride;
+    int hotspot_x;
+    int hotspot_y;
 
     /* current saved image */
     nsfb_bbox_t savloc;

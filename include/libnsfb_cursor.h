@@ -17,15 +17,22 @@ bool nsfb_cursor_init(nsfb_t *nsfb);
 
 /** Set cursor parameters.
  *
- * Set a cursor, the cursor will be shown at the specified location and
- * size. The pixel data may be referenced untill the cursor is altered or
- * cleared
+ * Set a cursor bitmap, the cursor will be shown at the location set by
+ * nsfb_cursor_loc_set. The pixel data may be referenced untill the cursor
+ * is altered or cleared
  *
- * @param nsfb The frambuffer context.
- * @param loc The location of the cursor
- * @param pixel The pixel data for the cursor 
+ * @param nsfb       The frambuffer context
+ * @param pixel      The cursor bitmap data
+ * @param bmp_width  The width of the cursor bitmap
+ * @param bmp_height The height of the cursor bitmap
+ * @param bmp_stride The cursor bitmap's row stride
+ * @param hotspot_x  Coordinate within cursor image to place over cursor loc
+ * @param hotspot_y  Coordinate within cursor image to place over cursor loc
+ *
+ * (hot_spot_x, hot_spot_y) is from top left.  (0, 0) means top left pixel of
+ * cursor bitmap is to be rendered over the cursor location.
  */
-bool nsfb_cursor_set(nsfb_t *nsfb, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride);
+bool nsfb_cursor_set(nsfb_t *nsfb, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, int hotspot_x, int hotspot_y);
 
 /** Set cursor location.
  *
