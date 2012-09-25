@@ -6,6 +6,7 @@
  *                http://www.opensource.org/licenses/mit-license.php
  */
 
+#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <SDL/SDL.h>
@@ -355,19 +356,43 @@ set_palette(nsfb_t *nsfb)
     int rloop, gloop, bloop;
     int loop = 0;
 
-    /* build a linear R:3 G:3 B:2 colour cube palette. */
-    for (rloop = 0; rloop < 8; rloop++) {
-        for (gloop = 0; gloop < 8; gloop++) {
-            for (bloop = 0; bloop < 4; bloop++) {
-                palette[loop].r = (rloop << 5) | (rloop << 2) | (rloop >> 1);
-                palette[loop].g = (gloop << 5) | (gloop << 2) | (gloop >> 1);
-                palette[loop].b = (bloop << 6) | (bloop << 4) | (bloop << 2) | (bloop);
+    /* Build a linear 6-8-5 levels RGB colour cube palette.
+     * This accounts for 240 colours */
+#define RLIM 6
+#define GLIM 8
+#define BLIM 5
+    for (rloop = 0; rloop < RLIM; rloop++) {
+        for (gloop = 0; gloop < GLIM; gloop++) {
+            for (bloop = 0; bloop < BLIM; bloop++) {
+                palette[loop].r = ((rloop * 255 * 2) + RLIM - 1) / (2 * (RLIM - 1));
+                palette[loop].g = ((gloop * 255 * 2) + GLIM - 1) / (2 * (GLIM - 1));
+                palette[loop].b = ((bloop * 255 * 2) + BLIM - 1) / (2 * (BLIM - 1));
+
                 nsfb->palette[loop] = palette[loop].r |
-		    palette[loop].g << 8 |
-		    palette[loop].b << 16;
+                        palette[loop].g << 8 |
+                        palette[loop].b << 16;
                 loop++;
             }
         }
+    }
+#undef RLIM
+#undef GLIM
+#undef BLIM
+
+    /* Should have 240 colours set */
+    assert(loop == 240);
+
+    /* Fill index 240 to index 255 with grayscales */
+    /* Note: already have full black and full white from RGB cube */
+    for (; loop < 256; loop++) {
+        int ngray = loop - 240 + 1;
+        palette[loop].r = ngray * 15; /* 17*15 = 255 */
+
+        palette[loop].g = palette[loop].b = palette[loop].r;
+
+        nsfb->palette[loop] = palette[loop].r |
+                palette[loop].g << 8 |
+                palette[loop].b << 16;
     }
 
     /* Set palette */
