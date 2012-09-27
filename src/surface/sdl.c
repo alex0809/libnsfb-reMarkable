@@ -6,7 +6,6 @@
  *                http://www.opensource.org/licenses/mit-license.php
  */
 
-#include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <SDL/SDL.h>
@@ -18,6 +17,7 @@
 
 #include "nsfb.h"
 #include "surface.h"
+#include "palette.h"
 #include "plot.h"
 #include "cursor.h"
 
@@ -353,49 +353,19 @@ set_palette(nsfb_t *nsfb)
 {
     SDL_Surface *sdl_screen = nsfb->surface_priv;
     SDL_Color palette[256];
-    int rloop, gloop, bloop;
     int loop = 0;
 
-    /* Build a linear 6-8-5 levels RGB colour cube palette.
-     * This accounts for 240 colours */
-#define RLIM 6
-#define GLIM 8
-#define BLIM 5
-    for (rloop = 0; rloop < RLIM; rloop++) {
-        for (gloop = 0; gloop < GLIM; gloop++) {
-            for (bloop = 0; bloop < BLIM; bloop++) {
-                palette[loop].r = ((rloop * 255 * 2) + RLIM - 1) / (2 * (RLIM - 1));
-                palette[loop].g = ((gloop * 255 * 2) + GLIM - 1) / (2 * (GLIM - 1));
-                palette[loop].b = ((bloop * 255 * 2) + BLIM - 1) / (2 * (BLIM - 1));
+    /* Get libnsfb palette */
+    nsfb_palette_generate_nsfb_8bpp(nsfb->palette);
 
-                nsfb->palette[loop] = palette[loop].r |
-                        palette[loop].g << 8 |
-                        palette[loop].b << 16;
-                loop++;
-            }
-        }
-    }
-#undef RLIM
-#undef GLIM
-#undef BLIM
-
-    /* Should have 240 colours set */
-    assert(loop == 240);
-
-    /* Fill index 240 to index 255 with grayscales */
-    /* Note: already have full black and full white from RGB cube */
-    for (; loop < 256; loop++) {
-        int ngray = loop - 240 + 1;
-        palette[loop].r = ngray * 15; /* 17*15 = 255 */
-
-        palette[loop].g = palette[loop].b = palette[loop].r;
-
-        nsfb->palette[loop] = palette[loop].r |
-                palette[loop].g << 8 |
-                palette[loop].b << 16;
+    /* Create SDL palette from nsfb palette */
+    for (loop = 0; loop < 256; loop++) {
+        palette[loop].r = (nsfb->palette->data[loop]      ) & 0xFF;
+        palette[loop].g = (nsfb->palette->data[loop] >>  8) & 0xFF;
+        palette[loop].b = (nsfb->palette->data[loop] >> 16) & 0xFF;
     }
 
-    /* Set palette */
+    /* Set SDL palette */
     SDL_SetColors(sdl_screen, palette, 0, 256);
 
 }
@@ -487,8 +457,10 @@ static int sdl_initialise(nsfb_t *nsfb)
 
     nsfb->surface_priv = sdl_screen;
 
-    if (nsfb->bpp == 8)
+    if (nsfb->bpp == 8) {
+        nsfb_palette_new(&nsfb->palette);
         set_palette(nsfb);
+    }
 
     nsfb->ptr = sdl_screen->pixels;
     nsfb->linelen = sdl_screen->pitch;

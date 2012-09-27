@@ -15,6 +15,7 @@
 #include "libnsfb_plot.h"
 #include "libnsfb_event.h"
 #include "nsfb.h"
+#include "palette.h"
 #include "surface.h"
 
 /* exported interface documented in libnsfb.h */
@@ -50,6 +51,10 @@ int
 nsfb_free(nsfb_t *nsfb)
 {
     int ret;
+
+    if (nsfb->palette != NULL)
+        nsfb_palette_free(nsfb->palette);
+
     ret = nsfb->surface_rtns->finalise(nsfb);
     free(nsfb);
     return ret;

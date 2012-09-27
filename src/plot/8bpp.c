@@ -10,7 +10,6 @@
 #include <stdbool.h>
 #include <endian.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <string.h>
 
 #include "libnsfb.h"
@@ -18,6 +17,7 @@
 #include "libnsfb_plot_util.h"
 
 #include "nsfb.h"
+#include "palette.h"
 #include "plot.h"
 
 static inline uint8_t *get_xy_loc(nsfb_t *nsfb, int x, int y)
@@ -28,34 +28,18 @@ static inline uint8_t *get_xy_loc(nsfb_t *nsfb, int x, int y)
 
 static inline nsfb_colour_t pixel_to_colour(nsfb_t *nsfb, uint8_t pixel)
 {
-        return nsfb->palette[pixel];
+        if (nsfb->palette == NULL)
+                return 0;
+
+        return nsfb->palette->data[pixel];
 }
 
 static uint8_t colour_to_pixel(nsfb_t *nsfb, nsfb_colour_t c)
 {
-        nsfb_colour_t palent;
-        int col;
+        if (nsfb->palette == NULL)
+                return 0;
 
-        int dr, dg, db; /* delta red, green blue values */
-
-        int cur_distance;
-        int best_distance = INT_MAX;
-        uint8_t best_col = 0;
-
-        for (col = 0; col < 256; col++) {
-                palent = nsfb->palette[col];
-
-                dr = (c & 0xFF) - (palent & 0xFF);
-                dg = ((c >> 8) & 0xFF) - ((palent >> 8) & 0xFF);
-                db = ((c >> 16) & 0xFF) - ((palent >> 16) & 0xFF);
-                cur_distance = ((dr * dr) + (dg * dg) + (db *db));
-                if (cur_distance < best_distance) {
-                        best_distance = cur_distance;
-                        best_col = col;
-                }
-        }
-
-        return best_col;
+        return nsfb_palette_best_match(nsfb->palette, c);
 }
 
 #define PLOT_TYPE uint8_t

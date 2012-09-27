@@ -28,7 +28,7 @@ struct nsfb_s {
     uint8_t *ptr; /**< Base of video memory. */
     int linelen; /**< length of a video line. */
 
-    nsfb_colour_t palette[256]; /**< palette for index modes */
+    struct nsfb_palette_s *palette; /**< palette for index modes */
     nsfb_cursor_t *cursor; /**< cursor */
 
     struct nsfb_surface_rtns_s *surface_rtns; /**< surface routines. */

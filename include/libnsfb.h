@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 
+typedef struct nsfb_palette_s nsfb_palette_t;
 typedef struct nsfb_cursor_s nsfb_cursor_t;
 typedef struct nsfb_s nsfb_t;
 typedef struct nsfb_event_s nsfb_event_t;
