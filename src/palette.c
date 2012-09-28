@@ -13,12 +13,13 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "palette.h"
 
 
 /** Create an empty palette object. */
-bool nsfb_palette_new(struct nsfb_palette_s **palette)
+bool nsfb_palette_new(struct nsfb_palette_s **palette, int width)
 {
 	*palette = malloc(sizeof(struct nsfb_palette_s));
 	if (*palette == NULL) {
@@ -28,14 +29,41 @@ bool nsfb_palette_new(struct nsfb_palette_s **palette)
 	(*palette)->type = NSFB_PALETTE_EMPTY;
 	(*palette)->last = 0;
 
+	(*palette)->dither = false;
+	(*palette)->dither_ctx.data_len = width * 3;
+	(*palette)->dither_ctx.data = malloc(width * 3 * sizeof(int));
+	if ((*palette)->dither_ctx.data == NULL) {
+		nsfb_palette_free(*palette);
+		return false;
+	}
+
 	return true;
 }
 
 /** Free a palette object. */
 void nsfb_palette_free(struct nsfb_palette_s *palette)
 {
-	if (palette != NULL)
+	if (palette != NULL) {
+		if (palette->dither_ctx.data != NULL) {
+			free(palette->dither_ctx.data);
+		}
 		free(palette);
+	}
+}
+
+/** Init error diffusion for a plot. */
+void nsfb_palette_dither_init(struct nsfb_palette_s *palette, int width)
+{
+	palette->dither = true;
+	memset(palette->dither_ctx.data, 0, palette->dither_ctx.data_len);
+	palette->dither_ctx.width = width * 3;
+	palette->dither_ctx.current = 0;
+}
+
+/** Finalise error diffusion after a plot. */
+void nsfb_palette_dither_fini(struct nsfb_palette_s *palette)
+{
+	palette->dither = false;
 }
 
 /** Generate libnsfb 8bpp default palette. */

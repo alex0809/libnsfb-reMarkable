@@ -16,6 +16,8 @@
 #error PLOT_LINELEN must be a macro to increment a line length
 #endif
 
+#include "palette.h"
+
 #define SIGN(x)  ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
 
 static bool
@@ -249,8 +251,7 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 	nsfb_bbox_t clipped; /* clipped display */
 
 	/* The part of the scaled image actually displayed is cropped to the
-	 * current context.
-	 */
+	 * current context. */
 	clipped.x0 = x;
 	clipped.y0 = y;
 	clipped.x1 = x + width;
@@ -270,6 +271,10 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 		rwidth = (clipped.x1 - clipped.x0);
 	else
 		rwidth = width;
+
+	if (nsfb->palette != NULL) {
+		nsfb_palette_dither_init(nsfb->palette, rwidth);
+	}
 
 	/* get veritcal (y) and horizontal (x) scale factors; both integer
 	 * part and remainder */
@@ -299,7 +304,8 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 	pvideo = get_xy_loc(nsfb, clipped.x0, clipped.y0);
 	pvideo_limit = pvideo + PLOT_LINELEN(nsfb->linelen) * rheight;
 	if (alpha) {
-		for (; pvideo < pvideo_limit; pvideo += PLOT_LINELEN(nsfb->linelen)) {
+		for (; pvideo < pvideo_limit;
+				pvideo += PLOT_LINELEN(nsfb->linelen)) {
 			/* looping through render area vertically */
 			xoff = xoffs;
 			rx = rxs;
@@ -322,7 +328,8 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 								xloop)));
 					}
 					/* plot pixel */
-					*(pvideo + xloop) = colour_to_pixel(nsfb, abpixel);
+					*(pvideo + xloop) = colour_to_pixel(
+							nsfb, abpixel);
 				}
 				/* handle horizontal interpolation */
 				xoff += dx;
@@ -341,7 +348,8 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 			}
 		}
 	} else {
-		for (; pvideo < pvideo_limit; pvideo += PLOT_LINELEN(nsfb->linelen)) {
+		for (; pvideo < pvideo_limit;
+				pvideo += PLOT_LINELEN(nsfb->linelen)) {
 			/* looping through render area vertically */
 			xoff = xoffs;
 			rx = rxs;
@@ -350,7 +358,8 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 				/* get value of source pixel in question */
 				abpixel = pixel[yoff + xoff];
 				/* plot pixel */
-				*(pvideo + xloop) = colour_to_pixel(nsfb, abpixel);
+				*(pvideo + xloop) = colour_to_pixel(
+						nsfb, abpixel);
 
 				/* handle horizontal interpolation */
 				xoff += dx;
@@ -369,6 +378,11 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 			}
 		}
 	}
+
+	if (nsfb->palette != NULL) {
+		nsfb_palette_dither_fini(nsfb->palette);
+	}
+
 	return true;
 }
 
@@ -391,17 +405,16 @@ bitmap(nsfb_t *nsfb,
         int height = loc->y1 - loc->y0;
         nsfb_bbox_t clipped; /* clipped display */
 
-	if (width == 0 || height == 0)
-		return true;
+        if (width == 0 || height == 0)
+                return true;
 
         /* Scaled bitmaps are handled by a separate function */
         if (width != bmp_width || height != bmp_height)
                 return bitmap_scaled(nsfb, loc, pixel, bmp_width, bmp_height,
                                 bmp_stride, alpha);
 
-        /* The part of the scaled image actually displayed is cropped to the
-         * current context.
-         */
+        /* The part of the image actually displayed is cropped to the
+         * current context. */
         clipped.x0 = x;
         clipped.y0 = y;
         clipped.x1 = x + width;
@@ -416,6 +429,10 @@ bitmap(nsfb_t *nsfb,
         if (width > (clipped.x1 - clipped.x0))
                 width = (clipped.x1 - clipped.x0);
 
+        if (nsfb->palette != NULL) {
+                nsfb_palette_dither_init(nsfb->palette, width);
+        }
+
         xoff = clipped.x0 - x;
         yoff = (clipped.y0 - y) * bmp_stride;
         height = height * bmp_stride + yoff;
@@ -428,16 +445,22 @@ bitmap(nsfb_t *nsfb,
                         for (xloop = 0; xloop < width; xloop++) {
                                 abpixel = pixel[yloop + xloop + xoff];
                                 if ((abpixel & 0xFF000000) != 0) {
-                                	/* pixel is not transparent; have to
-                                	 * plot something */
-                                        if ((abpixel & 0xFF000000) != 0xFF000000) {
-                                        	/* pixel is not opaque; need to
-                                        	 * blend */
-                                                abpixel = nsfb_plot_ablend(abpixel,
-                                                                           pixel_to_colour(nsfb, *(pvideo + xloop)));
+                                        /* pixel is not transparent; have to
+                                         * plot something */
+                                        if ((abpixel & 0xFF000000) !=
+                                                       0xFF000000) {
+                                                /* pixel is not opaque; need to
+                                                 * blend */
+                                                abpixel = nsfb_plot_ablend(
+                                                                abpixel,
+                                                                pixel_to_colour(
+                                                                nsfb,
+                                                                *(pvideo +
+                                                                xloop)));
                                         }
 
-                                        *(pvideo + xloop) = colour_to_pixel(nsfb, abpixel);
+                                        *(pvideo + xloop) = colour_to_pixel(
+                                                        nsfb, abpixel);
                                 }
                         }
                         pvideo += PLOT_LINELEN(nsfb->linelen);
@@ -446,11 +469,17 @@ bitmap(nsfb_t *nsfb,
                 for (yloop = yoff; yloop < height; yloop += bmp_stride) {
                         for (xloop = 0; xloop < width; xloop++) {
                                 abpixel = pixel[yloop + xloop + xoff];
-                                *(pvideo + xloop) = colour_to_pixel(nsfb, abpixel);
+                                *(pvideo + xloop) = colour_to_pixel(
+                                                nsfb, abpixel);
                         }
                         pvideo += PLOT_LINELEN(nsfb->linelen);
                 }
         }
+
+        if (nsfb->palette != NULL) {
+                nsfb_palette_dither_fini(nsfb->palette);
+        }
+
         return true;
 }
 

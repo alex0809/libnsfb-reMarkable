@@ -39,7 +39,7 @@ static uint8_t colour_to_pixel(nsfb_t *nsfb, nsfb_colour_t c)
         if (nsfb->palette == NULL)
                 return 0;
 
-        return nsfb_palette_best_match(nsfb->palette, c);
+        return nsfb_palette_best_match_dither(nsfb->palette, c);
 }
 
 #define PLOT_TYPE uint8_t

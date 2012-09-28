@@ -458,7 +458,7 @@ static int sdl_initialise(nsfb_t *nsfb)
     nsfb->surface_priv = sdl_screen;
 
     if (nsfb->bpp == 8) {
-        nsfb_palette_new(&nsfb->palette);
+        nsfb_palette_new(&nsfb->palette, nsfb->width);
         set_palette(nsfb);
     }
 
