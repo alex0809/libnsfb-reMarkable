@@ -10,7 +10,7 @@
  */
 
 #ifndef PLOT_TYPE
-#error PLOT_TYPE must be set to uint16_6 or uint32_t
+#error PLOT_TYPE must be set to uint8_t, uint16_t, or uint32_t
 #endif
 #ifndef PLOT_LINELEN
 #error PLOT_LINELEN must be a macro to increment a line length
