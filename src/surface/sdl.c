@@ -411,7 +411,8 @@ sdlcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 
 }
 
-static int sdl_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
+static int sdl_set_geometry(nsfb_t *nsfb, int width, int height,
+        enum nsfb_format_e format)
 {
     if (nsfb->surface_priv != NULL)
         return -1; /* fail if surface already initialised */
@@ -431,6 +432,8 @@ static int sdl_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_forma
 static int sdl_initialise(nsfb_t *nsfb)
 {
     SDL_Surface *sdl_screen;
+    SDL_PixelFormat *sdl_fmt;
+    enum nsfb_format_e fmt;
 
     if (nsfb->surface_priv != NULL)
         return -1;
@@ -453,6 +456,32 @@ static int sdl_initialise(nsfb_t *nsfb)
     if (sdl_screen == NULL ) {
         fprintf(stderr, "Unable to set video: %s\n", SDL_GetError());
         return -1;
+    }
+
+    /* find out what pixel format we got */
+    sdl_fmt = sdl_screen->format;
+
+    switch (sdl_fmt->BitsPerPixel) {
+    case 32:
+        if (sdl_fmt->Rshift == 0)
+            fmt = NSFB_FMT_XBGR8888;
+        else
+            fmt = NSFB_FMT_XRGB8888;
+        break;
+
+    default:
+        fmt = nsfb->format;
+        break;
+    }
+
+    /* If we didn't get what we asked for, reselect plotters */
+    if (nsfb->format != fmt) {
+        nsfb->format = fmt;
+
+        if (sdl_set_geometry(nsfb, nsfb->width, nsfb->height,
+                nsfb->format) != 0) {
+            return -1;
+        }
     }
 
     nsfb->surface_priv = sdl_screen;

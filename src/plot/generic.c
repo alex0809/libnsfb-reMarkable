@@ -28,7 +28,8 @@ extern const nsfb_plotter_fns_t _nsfb_1bpp_plotters;
 extern const nsfb_plotter_fns_t _nsfb_8bpp_plotters;
 extern const nsfb_plotter_fns_t _nsfb_16bpp_plotters;
 extern const nsfb_plotter_fns_t _nsfb_24bpp_plotters;
-extern const nsfb_plotter_fns_t _nsfb_32bpp_plotters;
+extern const nsfb_plotter_fns_t _nsfb_32bpp_xrgb8888_plotters;
+extern const nsfb_plotter_fns_t _nsfb_32bpp_xbgr8888_plotters;
 
 static bool set_clip(nsfb_t *nsfb, nsfb_bbox_t *clip)
 {
@@ -860,13 +861,13 @@ bool select_plotters(nsfb_t *nsfb)
 
     case NSFB_FMT_XBGR8888: /* 32bpp Unused Blue Green Red */
     case NSFB_FMT_ABGR8888: /* 32bpp Alpha Blue Green Red */
-	table = &_nsfb_32bpp_plotters;
+	table = &_nsfb_32bpp_xbgr8888_plotters;
 	nsfb->bpp = 32;
 	break;
 
     case NSFB_FMT_XRGB8888: /* 32bpp Unused Red Green Blue */
     case NSFB_FMT_ARGB8888: /* 32bpp Alpha Red Green Blue */
-	table = &_nsfb_32bpp_plotters;
+	table = &_nsfb_32bpp_xrgb8888_plotters;
 	nsfb->bpp = 32;
 	break;
 
