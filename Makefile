@@ -20,7 +20,7 @@ WARNFLAGS := -Wall -Wextra -Wundef -Wpointer-arith -Wcast-align \
 CFLAGS := -g -std=c99 -D_BSD_SOURCE -D_POSIX_C_SOURCE=200112L \
 	-I$(CURDIR)/include/ -I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS)
 
-NSFB_XCB_PKG_NAMES := xcb xcb-icccm xcb-image xcb-keysyms
+NSFB_XCB_PKG_NAMES := xcb xcb-icccm xcb-image xcb-keysyms xcb-atom
 
 $(eval $(call pkg_config_package_available,NSFB_VNC_AVAILABLE,libvncserver))
 $(eval $(call pkg_config_package_available,NSFB_SDL_AVAILABLE,sdl))
