@@ -40,7 +40,8 @@ enum nsfb_type_e {
     NSFB_SURFACE_LINUX, /**< Linux framebuffer surface */
     NSFB_SURFACE_VNC, /**< VNC surface */
     NSFB_SURFACE_ABLE, /**< ABLE framebuffer surface */
-    NSFB_SURFACE_X /**< X windows surface */
+    NSFB_SURFACE_X, /**< X windows surface */
+    NSFB_SURFACE_WL /**< Wayland surface */
 };
 
 enum nsfb_format_e {

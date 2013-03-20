@@ -79,8 +79,8 @@ typedef struct xstate_s {
     xcb_shm_seg_t segment; /* The handle to the image shared memory */
 } xstate_t;
 
-/* X keyboard codepage to nsfb mapping*/
-enum nsfb_key_code_e XCSKeyboardMap[256] = {
+/* X keyboard codepage to nsfb mapping */
+static enum nsfb_key_code_e XCSKeyboardMap[256] = {
     NSFB_KEY_UNKNOWN, /* */
     NSFB_KEY_UNKNOWN, /* */
     NSFB_KEY_UNKNOWN, /* */

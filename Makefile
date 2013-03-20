@@ -18,14 +18,21 @@ WARNFLAGS := -Wall -Wextra -Wundef -Wpointer-arith -Wcast-align \
 	-Wmissing-declarations -Wnested-externs -Werror -pedantic \
 	-Wno-overlength-strings # For nsglobe.c
 CFLAGS := -g -std=c99 -D_BSD_SOURCE -D_POSIX_C_SOURCE=200112L \
-	-I$(CURDIR)/include/ -I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS)
+	-I$(CURDIR)/include/ -I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS) -Wno-error
 
 NSFB_XCB_PKG_NAMES := xcb xcb-icccm xcb-image xcb-keysyms xcb-atom
 
+# determine which surface handlers can be compiled based upon avalable library
 $(eval $(call pkg_config_package_available,NSFB_VNC_AVAILABLE,libvncserver))
 $(eval $(call pkg_config_package_available,NSFB_SDL_AVAILABLE,sdl))
 $(eval $(call pkg_config_package_available,NSFB_XCB_AVAILABLE,$(NSFB_XCB_PKG_NAMES)))
+$(eval $(call pkg_config_package_available,NSFB_WLD_AVAILABLE,wayland-client))
 
+# surfaces not detectable via pkg-config 
+NSFB_ABLE_AVAILABLE := no
+NSFB_LINUX_AVAILABLE := yes
+
+# Flags and setup for each support library
 ifeq ($(NSFB_SDL_AVAILABLE),yes)
   $(eval $(call pkg_config_package_add_flags,sdl,CFLAGS))
   $(eval $(call pkg_config_package_add_flags,sdl,TESTCFLAGS,TESTLDFLAGS))
@@ -76,6 +83,13 @@ ifeq ($(NSFB_VNC_AVAILABLE),yes)
   $(eval $(call pkg_config_package_add_flags,libvncserver,TESTCFLAGS,TESTLDFLAGS))
 
   REQUIRED_PKGS := $(REQUIRED_PKGS) libvncserver
+endif 
+
+ifeq ($(NSFB_WLD_AVAILABLE),yes)
+  $(eval $(call pkg_config_package_add_flags,wayland-client,CFLAGS))
+  $(eval $(call pkg_config_package_add_flags,wayland-client,TESTCFLAGS,TESTLDFLAGS))
+
+  REQUIRED_PKGS := $(REQUIRED_PKGS) wayland-client
 endif 
 
 TESTLDFLAGS := -lm -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive $(TESTLDFLAGS)

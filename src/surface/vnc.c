@@ -497,7 +497,13 @@ static bool vnc_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 	event->value.controlcode = NSFB_CONTROL_TIMEOUT;
 
 	ret = rfbProcessEvents(vncscreen, timeout * 1000);
-	return true;
+	if (ret == 0) {
+	    /* valid event */
+	    return true;
+	    
+	} 
+	
+	/* connection error occurred */
     }
 
     return false;
