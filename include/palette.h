@@ -97,7 +97,6 @@ static inline uint8_t nsfb_palette_best_match(struct nsfb_palette_s *palette,
 		db = ((c >> 16) & 0xFF) - ((palent >> 16) & 0xFF);
 		cur_distance = (dr * dr) + (dg * dg) + (db * db);
 		if (cur_distance < best_distance) {
-			best_distance = cur_distance;
 			best_col = col;
 			*r_error = dr;
 			*g_error = dg;
