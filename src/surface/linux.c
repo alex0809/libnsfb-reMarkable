@@ -106,11 +106,15 @@ static int linux_initialise(nsfb_t *nsfb)
 	return -1;
 
     lstate = calloc(1, sizeof(struct lnx_priv));
+    if (lstate == NULL) {
+	return -1;
+    }
 
     /* Open the framebuffer device in read write */
     lstate->fd = open(FB_NAME, O_RDWR);
     if (lstate->fd < 0) {
 	printf("Unable to open %s.\n", FB_NAME);
+	free(lstate);
 	return -1;
     }
 
