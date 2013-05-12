@@ -15,8 +15,11 @@ TESTRUNNER = test/runtest.sh $(BUILDDIR) $(EXEEXT)
 # Toolchain flags
 WARNFLAGS := -Wall -Wextra -Wundef -Wpointer-arith -Wcast-align \
 	-Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes \
-	-Wmissing-declarations -Wnested-externs -Werror -pedantic \
-	-Wno-overlength-strings # For nsglobe.c
+	-Wmissing-declarations -Wnested-externs -Werror
+
+# would like these flags but gcc earlier than 4.4 fail
+#-pedantic -Wno-overlength-strings # For nsglobe.c
+
 CFLAGS := -g -std=c99 -D_BSD_SOURCE -D_POSIX_C_SOURCE=200112L \
 	-I$(CURDIR)/include/ -I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS) -Wno-error
 
