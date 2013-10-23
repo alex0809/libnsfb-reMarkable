@@ -56,6 +56,7 @@ nsfb_free(nsfb_t *nsfb)
         nsfb_palette_free(nsfb->palette);
 
     ret = nsfb->surface_rtns->finalise(nsfb);
+    free(nsfb->surface_rtns);
     free(nsfb);
     return ret;
 }
