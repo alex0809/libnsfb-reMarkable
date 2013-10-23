@@ -38,4 +38,7 @@ bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor);
 /** Clear the cursor restoring the image underneath */
 bool nsfb_cursor_clear(nsfb_t *nsfb, struct nsfb_cursor_s *cursor);
 
+/** Destroy the cursor */
+bool nsfb_cursor_destroy(struct nsfb_cursor_s *cursor);
+
 #endif /* CURSOR_H */

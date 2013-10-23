@@ -150,3 +150,13 @@ bool nsfb_cursor_clear(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 	return true;
 
 }
+
+bool nsfb_cursor_destroy(struct nsfb_cursor_s *cursor)
+{
+	/* Note: cursor->pixel isn't owned by us */
+
+	free(cursor->sav);
+	free(cursor);
+
+	return true;
+}

@@ -15,6 +15,7 @@
 #include "libnsfb_plot.h"
 #include "libnsfb_event.h"
 #include "nsfb.h"
+#include "cursor.h"
 #include "palette.h"
 #include "surface.h"
 
@@ -58,9 +59,14 @@ nsfb_free(nsfb_t *nsfb)
     if (nsfb->plotter_fns != NULL)
 	free(nsfb->plotter_fns);
 
+    if (nsfb->cursor != NULL)
+	nsfb_cursor_destroy(nsfb->cursor);
+
     ret = nsfb->surface_rtns->finalise(nsfb);
+
     free(nsfb->surface_rtns);
     free(nsfb);
+
     return ret;
 }
 
