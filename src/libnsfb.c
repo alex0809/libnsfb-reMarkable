@@ -55,6 +55,9 @@ nsfb_free(nsfb_t *nsfb)
     if (nsfb->palette != NULL)
         nsfb_palette_free(nsfb->palette);
 
+    if (nsfb->plotter_fns != NULL)
+	free(nsfb->plotter_fns);
+
     ret = nsfb->surface_rtns->finalise(nsfb);
     free(nsfb->surface_rtns);
     free(nsfb);
