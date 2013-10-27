@@ -66,18 +66,22 @@ static inline uint8_t nsfb_palette_best_match(struct nsfb_palette_s *palette,
 	int cur_distance;
 	int best_distance = INT_MAX;
 
+	int r = ( c        & 0xFF);
+	int g = ((c >>  8) & 0xFF);
+	int b = ((c >> 16) & 0xFF);
+
 	switch (palette->type) {
 	case NSFB_PALETTE_NSFB_8BPP:
 		/* Index into colour cube part */
-		dr = ((( c        & 0xFF) * 5) + 128) / 256;
-		dg = ((((c >>  8) & 0xFF) * 7) + 128) / 256;
-		db = ((((c >> 16) & 0xFF) * 4) + 128) / 256;
+		dr = ((r * 5) + 128) / 256;
+		dg = ((g * 7) + 128) / 256;
+		db = ((b * 4) + 128) / 256;
 		col = 40 * dr + 5 * dg + db;
 
 		palent = palette->data[col];
-		dr = ( c        & 0xFF) - ( palent        & 0xFF);
-		dg = ((c >>  8) & 0xFF) - ((palent >> 8 ) & 0xFF);
-		db = ((c >> 16) & 0xFF) - ((palent >> 16) & 0xFF);
+		dr = r - ( palent        & 0xFF);
+		dg = g - ((palent >>  8) & 0xFF);
+		db = b - ((palent >> 16) & 0xFF);
 		cur_distance = (dr * dr) + (dg * dg) + (db * db);
 
 		best_col = col;
@@ -87,14 +91,12 @@ static inline uint8_t nsfb_palette_best_match(struct nsfb_palette_s *palette,
 		*b_error = db;
 
 		/* Index into grayscale part */
-		col = (( c        & 0xFF) +
-		       ((c >>  8) & 0xFF) +
-		       ((c >> 16) & 0xFF) + (45 / 2)) / (15 * 3) - 1 + 240;
+		col = (r + g + b + (45 / 2)) / (15 * 3) - 1 + 240;
 		palent = palette->data[col];
 
-		dr = ( c        & 0xFF) - ( palent        & 0xFF);
-		dg = ((c >>  8) & 0xFF) - ((palent >>  8) & 0xFF);
-		db = ((c >> 16) & 0xFF) - ((palent >> 16) & 0xFF);
+		dr = r - (palent & 0xFF);
+		dg = g - (palent & 0xFF);
+		db = b - (palent & 0xFF);
 		cur_distance = (dr * dr) + (dg * dg) + (db * db);
 		if (cur_distance < best_distance) {
 			best_col = col;
@@ -109,9 +111,9 @@ static inline uint8_t nsfb_palette_best_match(struct nsfb_palette_s *palette,
 		for (col = 0; col <= palette->last; col++) {
 			palent = palette->data[col];
 
-			dr = ( c        & 0xFF) - ( palent        & 0xFF);
-			dg = ((c >>  8) & 0xFF) - ((palent >>  8) & 0xFF);
-			db = ((c >> 16) & 0xFF) - ((palent >> 16) & 0xFF);
+			dr = r - ( palent        & 0xFF);
+			dg = g - ((palent >>  8) & 0xFF);
+			db = b - ((palent >> 16) & 0xFF);
 			cur_distance = (dr * dr) + (dg * dg) + (db * db);
 			if (cur_distance < best_distance) {
 				best_distance = cur_distance;
