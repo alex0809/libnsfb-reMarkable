@@ -30,7 +30,7 @@ bool nsfb_palette_new(struct nsfb_palette_s **palette, int width)
 	(*palette)->last = 0;
 
 	(*palette)->dither = false;
-	(*palette)->dither_ctx.data_len = width * 3;
+	(*palette)->dither_ctx.data_len = width * 3 * sizeof(int);
 	(*palette)->dither_ctx.data = malloc(width * 3 * sizeof(int));
 	if ((*palette)->dither_ctx.data == NULL) {
 		nsfb_palette_free(*palette);
