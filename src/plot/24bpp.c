@@ -430,6 +430,7 @@ const nsfb_plotter_fns_t _nsfb_24bpp_plotters = {
         .fill = fill,
         .point = point,
         .bitmap = bitmap,
+        .bitmap_tiles = bitmap_tiles,
         .glyph8 = glyph8,
         .glyph1 = glyph1,
         .readrect = readrect,

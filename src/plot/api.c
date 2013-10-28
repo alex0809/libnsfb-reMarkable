@@ -165,7 +165,12 @@ nsfb_plot_copy(nsfb_t *srcfb,
 
 bool nsfb_plot_bitmap(nsfb_t *nsfb, const nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha)
 {
-    return nsfb->plotter_fns->bitmap(nsfb, loc,  pixel, bmp_width, bmp_height, bmp_stride, alpha);
+    return nsfb->plotter_fns->bitmap(nsfb, loc, pixel, bmp_width, bmp_height, bmp_stride, alpha);
+}
+
+bool nsfb_plot_bitmap_tiles(nsfb_t *nsfb, const nsfb_bbox_t *loc, int tiles_x, int tiles_y, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha)
+{
+    return nsfb->plotter_fns->bitmap_tiles(nsfb, loc, tiles_x, tiles_y, pixel, bmp_width, bmp_height, bmp_stride, alpha);
 }
 
 /** Plot an 8 bit glyph.

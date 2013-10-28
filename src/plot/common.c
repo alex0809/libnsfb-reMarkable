@@ -491,6 +491,88 @@ bitmap(nsfb_t *nsfb,
         return true;
 }
 
+static bool
+bitmap_tiles(nsfb_t *nsfb,
+		const nsfb_bbox_t *loc,
+		int tiles_x,
+		int tiles_y,
+		const nsfb_colour_t *pixel,
+		int bmp_width,
+		int bmp_height,
+		int bmp_stride,
+		bool alpha)
+{
+	nsfb_bbox_t render_area;
+	nsfb_bbox_t tloc;
+	int tx, ty;
+	int width = loc->x1 - loc->x0;
+	int height = loc->y1 - loc->y0;
+	bool ok = true;
+	bool set_dither = false; /* true iff we enabled dithering here */
+
+	/* Avoid pointless rendering */
+	if (width == 0 || height == 0)
+		return true;
+
+	render_area.x0 = loc->x0;
+	render_area.y0 = loc->y0;
+	render_area.x1 = loc->x0 + width * tiles_x;
+	render_area.y1 = loc->y0 + height * tiles_y;
+
+	if (!nsfb_plot_clip_ctx(nsfb, &render_area))
+		return true;
+
+	/* Enable error diffusion for paletted screens, if not already on,
+	 * if not repeating in x direction */
+	if (tiles_x == 1 && nsfb->palette != NULL &&
+			nsfb_palette_dithering_on(nsfb->palette) == false) {
+		nsfb_palette_dither_init(nsfb->palette,
+				render_area.x1 - render_area.x0);
+		set_dither = true;
+	}
+
+	/* Given tile location is top left; start with that one. */
+	tloc = *loc;
+
+	if (width != bmp_width || height != bmp_height) {
+		/* Scaled */
+		for (ty = 0; ty < tiles_y; ty++) {
+			for (tx = 0; tx < tiles_x; tx++) {
+				ok &= bitmap_scaled(nsfb, &tloc, pixel,
+						bmp_width, bmp_height,
+						bmp_stride, alpha);
+				tloc.x0 += width;
+				tloc.x1 += width;
+			}
+			tloc.x0 = loc->x0;
+			tloc.y0 += height;
+			tloc.x1 = loc->x1;
+			tloc.y1 += height;
+		}
+	} else {
+		/* Unscaled */
+		for (ty = 0; ty < tiles_y; ty++) {
+			for (tx = 0; tx < tiles_x; tx++) {
+				ok &= bitmap(nsfb, &tloc, pixel,
+						bmp_width, bmp_height,
+						bmp_stride, alpha);
+				tloc.x0 += width;
+				tloc.x1 += width;
+			}
+			tloc.x0 = loc->x0;
+			tloc.y0 += height;
+			tloc.x1 = loc->x1;
+			tloc.y1 += height;
+		}
+	}
+
+	if (set_dither) {
+		nsfb_palette_dither_fini(nsfb->palette);
+	}
+
+	return ok;
+}
+
 static bool readrect(nsfb_t *nsfb, nsfb_bbox_t *rect, nsfb_colour_t *buffer)
 {
         PLOT_TYPE *pvideo;

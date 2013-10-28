@@ -154,6 +154,10 @@ bool nsfb_plot_copy(nsfb_t *srcfb, nsfb_bbox_t *srcbox, nsfb_t *dstfb, nsfb_bbox
  */
 bool nsfb_plot_bitmap(nsfb_t *nsfb, const nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha);
 
+/** Plot bitmap.
+ */
+bool nsfb_plot_bitmap_tiles(nsfb_t *nsfb, const nsfb_bbox_t *loc, int tiles_x, int tiles_y, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha);
+
 /** Plot an 8 bit glyph.
  */
 bool nsfb_plot_glyph8(nsfb_t *nsfb, nsfb_bbox_t *loc, const uint8_t *pixel, int pitch, nsfb_colour_t c);

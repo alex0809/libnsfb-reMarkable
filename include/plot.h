@@ -61,6 +61,10 @@ typedef	bool (nsfb_plotfn_ellipse_fill_t)(nsfb_t *nsfb, nsfb_bbox_t *ellipse, ns
  */
 typedef bool (nsfb_plotfn_bitmap_t)(nsfb_t *nsfb, const nsfb_bbox_t *loc, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha);
 
+/** Plot tiled bitmap
+ */
+typedef bool (nsfb_plotfn_bitmap_tiles_t)(nsfb_t *nsfb, const nsfb_bbox_t *loc, int tiles_x, int tiles_y, const nsfb_colour_t *pixel, int bmp_width, int bmp_height, int bmp_stride, bool alpha);
+
 
 /** Copy an area of screen 
  *
@@ -108,6 +112,7 @@ typedef struct nsfb_plotter_fns_s {
     nsfb_plotfn_ellipse_fill_t *ellipse_fill;
     nsfb_plotfn_arc_t *arc;
     nsfb_plotfn_bitmap_t *bitmap;
+    nsfb_plotfn_bitmap_tiles_t *bitmap_tiles;
     nsfb_plotfn_point_t *point;
     nsfb_plotfn_copy_t *copy;
     nsfb_plotfn_glyph8_t *glyph8;
