@@ -28,7 +28,7 @@ struct nsfb_palette_s {
 	uint8_t last; /**< Last used palette index */
 	nsfb_colour_t data[256]; /**< Palette for index modes */
 
-	bool dither; /**< Whether to use error diffusion */
+	bool dither; /**< Whether error diffusion was requested */
 	struct {
 		int width; /**< Length of error value buffer ring*/
 		int current; /**< Current pos in ring buffer*/
@@ -52,6 +52,11 @@ void nsfb_palette_dither_fini(struct nsfb_palette_s *palette);
 
 /** Generate libnsfb 8bpp default palette. */
 void nsfb_palette_generate_nsfb_8bpp(struct nsfb_palette_s *palette);
+
+static inline bool nsfb_palette_dithering_on(struct nsfb_palette_s *palette)
+{
+	return palette->dither;
+}
 
 /** Find best palette match for given colour. */
 static inline uint8_t nsfb_palette_best_match(struct nsfb_palette_s *palette,

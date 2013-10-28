@@ -249,6 +249,7 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 	int dxr, dyr; /* scale factor (remainder) */
 	int rx, ry, rxs; /* remainder trackers */
 	nsfb_bbox_t clipped; /* clipped display */
+	bool set_dither = false; /* true iff we enabled dithering here */
 
 	/* The part of the scaled image actually displayed is cropped to the
 	 * current context. */
@@ -272,8 +273,11 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 	else
 		rwidth = width;
 
-	if (nsfb->palette != NULL) {
+	/* Enable error diffusion for paletted screens, if not already on */
+	if (nsfb->palette != NULL &&
+			nsfb_palette_dithering_on(nsfb->palette) == false) {
 		nsfb_palette_dither_init(nsfb->palette, rwidth);
+		set_dither = true;
 	}
 
 	/* get veritcal (y) and horizontal (x) scale factors; both integer
@@ -379,7 +383,7 @@ static bool bitmap_scaled(nsfb_t *nsfb, const nsfb_bbox_t *loc,
 		}
 	}
 
-	if (nsfb->palette != NULL) {
+	if (set_dither) {
 		nsfb_palette_dither_fini(nsfb->palette);
 	}
 
@@ -404,6 +408,7 @@ bitmap(nsfb_t *nsfb,
         int width = loc->x1 - loc->x0;
         int height = loc->y1 - loc->y0;
         nsfb_bbox_t clipped; /* clipped display */
+	bool set_dither = false; /* true iff we enabled dithering here */
 
         if (width == 0 || height == 0)
                 return true;
@@ -429,9 +434,12 @@ bitmap(nsfb_t *nsfb,
         if (width > (clipped.x1 - clipped.x0))
                 width = (clipped.x1 - clipped.x0);
 
-        if (nsfb->palette != NULL) {
-                nsfb_palette_dither_init(nsfb->palette, width);
-        }
+	/* Enable error diffusion for paletted screens, if not already on */
+	if (nsfb->palette != NULL &&
+			nsfb_palette_dithering_on(nsfb->palette) == false) {
+		nsfb_palette_dither_init(nsfb->palette, width);
+		set_dither = true;
+	}
 
         xoff = clipped.x0 - x;
         yoff = (clipped.y0 - y) * bmp_stride;
@@ -476,7 +484,7 @@ bitmap(nsfb_t *nsfb,
                 }
         }
 
-        if (nsfb->palette != NULL) {
+        if (set_dither) {
                 nsfb_palette_dither_fini(nsfb->palette);
         }
 
