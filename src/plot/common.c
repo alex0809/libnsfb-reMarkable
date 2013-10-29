@@ -408,7 +408,7 @@ bitmap(nsfb_t *nsfb,
         int width = loc->x1 - loc->x0;
         int height = loc->y1 - loc->y0;
         nsfb_bbox_t clipped; /* clipped display */
-	bool set_dither = false; /* true iff we enabled dithering here */
+        bool set_dither = false; /* true iff we enabled dithering here */
 
         if (width == 0 || height == 0)
                 return true;
@@ -491,6 +491,174 @@ bitmap(nsfb_t *nsfb,
         return true;
 }
 
+static inline bool
+bitmap_tiles_x(nsfb_t *nsfb,
+		const nsfb_bbox_t *loc,
+		int tiles_x,
+		const nsfb_colour_t *pixel,
+		int bmp_width,
+		int bmp_height,
+		int bmp_stride,
+		bool alpha)
+{
+	PLOT_TYPE *pvideo;
+	PLOT_TYPE *pvideo_pos;
+	PLOT_TYPE *pvideo_limit;
+	nsfb_colour_t abpixel; /* alphablended pixel */
+	int xloop;
+	int xoff, yoff; /* x and y offset into image */
+	int xlim;
+	int t;
+	int x = loc->x0;
+	int y = loc->y0;
+	int width = loc->x1 - loc->x0;
+	int height = loc->y1 - loc->y0;
+	nsfb_bbox_t clipped; /* clipped display */
+
+	if (width == 0 || height == 0)
+		return true;
+
+	/* The part of the image actually displayed is cropped to the
+	 * current context. */
+	clipped.x0 = x;
+	clipped.y0 = y;
+	clipped.x1 = x + width * tiles_x;
+	clipped.y1 = y + height;
+
+	if (!nsfb_plot_clip_ctx(nsfb, &clipped))
+		return true;
+
+	if (height > (clipped.y1 - clipped.y0))
+		height = (clipped.y1 - clipped.y0);
+
+	pvideo = get_xy_loc(nsfb, clipped.x0, clipped.y0);
+	pvideo_limit = pvideo + PLOT_LINELEN(nsfb->linelen) * height;
+
+	xoff = clipped.x0 - x;
+	xlim = width - (x + width * tiles_x - clipped.x1);
+	yoff = (clipped.y0 - y) * bmp_stride;
+
+	/* plot the image */
+	if (alpha) {
+		for (; pvideo < pvideo_limit;
+				pvideo += PLOT_LINELEN(nsfb->linelen)) {
+			pvideo_pos = pvideo;
+			for (t = 0; t < 1; t++) {
+				for (xloop = xoff; xloop < width; xloop++) {
+					abpixel = pixel[yoff + xloop];
+					if ((abpixel & 0xFF000000) != 0) {
+						/* pixel is not transparent;
+						 * have to plot something */
+						if ((abpixel & 0xFF000000) !=
+								0xFF000000) {
+							/* pixel is not opaque;
+							 * need to blend */
+							abpixel =
+							nsfb_plot_ablend(
+								abpixel,
+								pixel_to_colour(
+								nsfb,
+								*(pvideo +
+								xloop - xoff)));
+						}
+						*(pvideo + xloop - xoff) =
+								colour_to_pixel(
+								nsfb, abpixel);
+					}
+				}
+			}
+			pvideo_pos += width - xoff;
+			for (; t < tiles_x - 1; t++) {
+				for (xloop = 0; xloop < width; xloop++) {
+					abpixel = pixel[yoff + xloop];
+					if ((abpixel & 0xFF000000) != 0) {
+						/* pixel is not transparent;
+						 * have to plot something */
+						if ((abpixel & 0xFF000000) !=
+								0xFF000000) {
+							/* pixel is not opaque;
+							 * need to blend */
+							abpixel =
+							nsfb_plot_ablend(
+								abpixel,
+								pixel_to_colour(
+								nsfb,
+								*(pvideo_pos +
+								xloop)));
+						}
+						*(pvideo_pos + xloop) =
+								colour_to_pixel(
+								nsfb, abpixel);
+					}
+				}
+				pvideo_pos += width;
+			}
+			for (; t < tiles_x; t++) {
+				for (xloop = 0; xloop < xlim; xloop++) {
+					abpixel = pixel[yoff + xloop];
+					if ((abpixel & 0xFF000000) != 0) {
+						/* pixel is not transparent;
+						 * have to plot something */
+						if ((abpixel & 0xFF000000) !=
+								0xFF000000) {
+							/* pixel is not opaque;
+							 * need to blend */
+							abpixel =
+							nsfb_plot_ablend(
+								abpixel,
+								pixel_to_colour(
+								nsfb,
+								*(pvideo_pos +
+								xloop)));
+						}
+						*(pvideo_pos + xloop) =
+								colour_to_pixel(
+								nsfb, abpixel);
+					}
+				}
+			}
+			yoff += bmp_stride;
+		}
+	} else {
+		for (; pvideo < pvideo_limit;
+				pvideo += PLOT_LINELEN(nsfb->linelen)) {
+			pvideo_pos = pvideo;
+			for (t = 0; t < 1; t++) {
+				for (xloop = xoff; xloop < width; xloop++) {
+					abpixel = pixel[yoff + xloop];
+					*(pvideo + xloop - xoff) =
+							colour_to_pixel(
+								nsfb,
+								abpixel);
+				}
+			}
+			pvideo_pos += width - xoff;
+			for (; t < tiles_x - 1; t++) {
+				for (xloop = 0; xloop < width; xloop++) {
+					abpixel = pixel[yoff + xloop];
+					*(pvideo_pos + xloop) =
+							colour_to_pixel(
+								nsfb,
+								abpixel);
+				}
+				pvideo_pos += width;
+			}
+			for (; t < tiles_x; t++) {
+				for (xloop = 0; xloop < xlim; xloop++) {
+					abpixel = pixel[yoff + xloop];
+					*(pvideo_pos + xloop) =
+							colour_to_pixel(
+								nsfb,
+								abpixel);
+				}
+			}
+			yoff += bmp_stride;
+		}
+	}
+
+	return true;
+}
+
 static bool
 bitmap_tiles(nsfb_t *nsfb,
 		const nsfb_bbox_t *loc,
@@ -507,7 +675,9 @@ bitmap_tiles(nsfb_t *nsfb,
 	int tx, ty;
 	int width = loc->x1 - loc->x0;
 	int height = loc->y1 - loc->y0;
+	int skip = 0;
 	bool ok = true;
+	bool scaled = (width != bmp_width) || (height != bmp_height);
 	bool set_dither = false; /* true iff we enabled dithering here */
 
 	/* Avoid pointless rendering */
@@ -523,8 +693,8 @@ bitmap_tiles(nsfb_t *nsfb,
 		return true;
 
 	/* Enable error diffusion for paletted screens, if not already on,
-	 * if not repeating in x direction */
-	if (tiles_x == 1 && nsfb->palette != NULL &&
+	 * if not scaled or if not repeating in x direction */
+	if ((!scaled || tiles_x == 1) && nsfb->palette != NULL &&
 			nsfb_palette_dithering_on(nsfb->palette) == false) {
 		nsfb_palette_dither_init(nsfb->palette,
 				render_area.x1 - render_area.x0);
@@ -534,7 +704,19 @@ bitmap_tiles(nsfb_t *nsfb,
 	/* Given tile location is top left; start with that one. */
 	tloc = *loc;
 
-	if (width != bmp_width || height != bmp_height) {
+	if (render_area.x0 - tloc.x0 > width) {
+		skip = (render_area.x0 - tloc.x0) / width;
+		tiles_x -= skip;
+		skip *= width;
+		tloc.x0 += skip;
+		tloc.x1 += skip;
+	}
+
+	if (tloc.x1 - render_area.x1 > width) {
+		tiles_x -= (tloc.x1 - render_area.x1) / width;
+	}
+
+	if (scaled) {
 		/* Scaled */
 		for (ty = 0; ty < tiles_y; ty++) {
 			for (tx = 0; tx < tiles_x; tx++) {
@@ -551,18 +733,28 @@ bitmap_tiles(nsfb_t *nsfb,
 		}
 	} else {
 		/* Unscaled */
-		for (ty = 0; ty < tiles_y; ty++) {
-			for (tx = 0; tx < tiles_x; tx++) {
-				ok &= bitmap(nsfb, &tloc, pixel,
-						bmp_width, bmp_height,
+		if (tiles_x != 1) {
+			for (ty = 0; ty < tiles_y; ty++) {
+				ok &= bitmap_tiles_x(nsfb, &tloc, tiles_x,
+						pixel, bmp_width, bmp_height,
 						bmp_stride, alpha);
-				tloc.x0 += width;
-				tloc.x1 += width;
+				tloc.y0 += height;
+				tloc.y1 += height;
 			}
-			tloc.x0 = loc->x0;
-			tloc.y0 += height;
-			tloc.x1 = loc->x1;
-			tloc.y1 += height;
+		} else if (tiles_x == 1) {
+			for (ty = 0; ty < tiles_y; ty++) {
+				for (tx = 0; tx < tiles_x; tx++) {
+					ok &= bitmap(nsfb, &tloc, pixel,
+							bmp_width, bmp_height,
+							bmp_stride, alpha);
+					tloc.x0 += width;
+					tloc.x1 += width;
+				}
+				tloc.x0 = loc->x0 + skip;
+				tloc.y0 += height;
+				tloc.x1 = loc->x1 + skip;
+				tloc.y1 += height;
+			}
 		}
 	}
 
