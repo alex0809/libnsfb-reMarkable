@@ -54,10 +54,11 @@ void nsfb_palette_free(struct nsfb_palette_s *palette)
 /** Init error diffusion for a plot. */
 void nsfb_palette_dither_init(struct nsfb_palette_s *palette, int width)
 {
+	width *= 3;
 	palette->dither = true;
-	memset(palette->dither_ctx.data, 0, palette->dither_ctx.data_len);
-	palette->dither_ctx.width = width * 3;
 	palette->dither_ctx.current = 0;
+	palette->dither_ctx.width = width;
+	memset(palette->dither_ctx.data, 0, width * sizeof(int));
 }
 
 /** Finalise error diffusion after a plot. */
