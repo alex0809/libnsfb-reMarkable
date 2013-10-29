@@ -363,6 +363,7 @@ set_palette(nsfb_t *nsfb)
         palette[loop].r = (nsfb->palette->data[loop]      ) & 0xFF;
         palette[loop].g = (nsfb->palette->data[loop] >>  8) & 0xFF;
         palette[loop].b = (nsfb->palette->data[loop] >> 16) & 0xFF;
+        palette[loop].unused = 0; /* Suppress valgrind uninitialised values */
     }
 
     /* Set SDL palette */
