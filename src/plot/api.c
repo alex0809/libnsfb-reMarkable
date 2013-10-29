@@ -155,7 +155,7 @@ nsfb_plot_copy(nsfb_t *srcfb,
 	    return true; 
 
 	/* completely opaque pixels can be replaced with fill */
-	if ((srccol & 0xff000000) == 0xff)
+	if ((srccol & 0xff000000) == 0xff000000)
 	    return dstfb->plotter_fns->fill(dstfb, dstbox, srccol);
     }
 
