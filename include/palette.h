@@ -145,6 +145,7 @@ static inline uint8_t nsfb_palette_best_match_dither(
 	int current;
 	int error;
 	int width = palette->dither_ctx.width;
+	int *data = palette->dither_ctx.data;
 	uint8_t best_col_index;
 
 	if (palette == NULL)
@@ -156,9 +157,9 @@ static inline uint8_t nsfb_palette_best_match_dither(
 	current = palette->dither_ctx.current;
 
 	/* Get RGB components of colour, and apply error */
-	r = ( c        & 0xFF) + palette->dither_ctx.data[current    ];
-	g = ((c >>  8) & 0xFF) + palette->dither_ctx.data[current + 1];
-	b = ((c >> 16) & 0xFF) + palette->dither_ctx.data[current + 2];
+	r = ( c        & 0xFF) + data[current    ];
+	g = ((c >>  8) & 0xFF) + data[current + 1];
+	b = ((c >> 16) & 0xFF) + data[current + 2];
 
 	/* Clamp new RGB components to range */
 	if (r <   0) r =   0;
@@ -169,9 +170,9 @@ static inline uint8_t nsfb_palette_best_match_dither(
 	if (b > 255) b = 255;
 
 	/* Reset error diffusion slots to 0 */
-	palette->dither_ctx.data[current    ] = 0;
-	palette->dither_ctx.data[current + 1] = 0;
-	palette->dither_ctx.data[current + 2] = 0;
+	data[current    ] = 0;
+	data[current + 1] = 0;
+	data[current + 2] = 0;
 
 	/* Rebuild colour from modified components */
 	c = r + (g << 8) + (b << 16);
@@ -196,9 +197,9 @@ static inline uint8_t nsfb_palette_best_match_dither(
 	/* Error for [N] (next) */
 	if (error != 0) {
 		/* The pixel exists */
-		palette->dither_ctx.data[error    ] += r * 7 / 16;
-		palette->dither_ctx.data[error + 1] += g * 7 / 16;
-		palette->dither_ctx.data[error + 2] += b * 7 / 16;
+		data[error    ] += r * 7 / 16;
+		data[error + 1] += g * 7 / 16;
+		data[error + 2] += b * 7 / 16;
 	}
 
 	error += width - 2 * 3;
@@ -207,18 +208,18 @@ static inline uint8_t nsfb_palette_best_match_dither(
 	/* Error for [l] (below, left) */
 	if (error >= 0 && error != 3) {
 		/* The pixel exists */
-		palette->dither_ctx.data[error    ] += r * 3 / 16;
-		palette->dither_ctx.data[error + 1] += g * 3 / 16;
-		palette->dither_ctx.data[error + 2] += b * 3 / 16;
+		data[error    ] += r * 3 / 16;
+		data[error + 1] += g * 3 / 16;
+		data[error + 2] += b * 3 / 16;
 	}
 
 	error += 3;
 	if (error >= width)
 		error -= width;
 	/* Error for [m] (below, middle) */
-	palette->dither_ctx.data[error    ] += r * 5 / 16;
-	palette->dither_ctx.data[error + 1] += g * 5 / 16;
-	palette->dither_ctx.data[error + 2] += b * 5 / 16;
+	data[error    ] += r * 5 / 16;
+	data[error + 1] += g * 5 / 16;
+	data[error + 2] += b * 5 / 16;
 
 	error += 3;
 	if (error >= width)
@@ -226,9 +227,9 @@ static inline uint8_t nsfb_palette_best_match_dither(
 	/* Error for [r] (below, right) */
 	if (error != 0) {
 		/* The pixel exists */
-		palette->dither_ctx.data[error    ] += r / 16;
-		palette->dither_ctx.data[error + 1] += g / 16;
-		palette->dither_ctx.data[error + 2] += b / 16;
+		data[error    ] += r / 16;
+		data[error + 1] += g / 16;
+		data[error + 2] += b / 16;
 	}
 
 	return best_col_index;

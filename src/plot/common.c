@@ -496,8 +496,6 @@ bitmap_tiles_x(nsfb_t *nsfb,
 		const nsfb_bbox_t *loc,
 		int tiles_x,
 		const nsfb_colour_t *pixel,
-		int bmp_width,
-		int bmp_height,
 		int bmp_stride,
 		bool alpha)
 {
@@ -733,15 +731,7 @@ bitmap_tiles(nsfb_t *nsfb,
 		}
 	} else {
 		/* Unscaled */
-		if (tiles_x != 1) {
-			for (ty = 0; ty < tiles_y; ty++) {
-				ok &= bitmap_tiles_x(nsfb, &tloc, tiles_x,
-						pixel, bmp_width, bmp_height,
-						bmp_stride, alpha);
-				tloc.y0 += height;
-				tloc.y1 += height;
-			}
-		} else if (tiles_x == 1) {
+		if (tiles_x == 1 || !set_dither) {
 			for (ty = 0; ty < tiles_y; ty++) {
 				for (tx = 0; tx < tiles_x; tx++) {
 					ok &= bitmap(nsfb, &tloc, pixel,
@@ -753,6 +743,13 @@ bitmap_tiles(nsfb_t *nsfb,
 				tloc.x0 = loc->x0 + skip;
 				tloc.y0 += height;
 				tloc.x1 = loc->x1 + skip;
+				tloc.y1 += height;
+			}
+		} else if (tiles_x > 1) {
+			for (ty = 0; ty < tiles_y; ty++) {
+				ok &= bitmap_tiles_x(nsfb, &tloc, tiles_x,
+						pixel, bmp_stride, alpha);
+				tloc.y0 += height;
 				tloc.y1 += height;
 			}
 		}
