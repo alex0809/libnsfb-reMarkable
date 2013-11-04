@@ -48,9 +48,9 @@ enum nsfb_format_e {
     NSFB_FMT_ANY = 0, /* No specific format - use surface default */
     NSFB_FMT_XBGR8888, /* 32bpp Blue Green Red */
     NSFB_FMT_XRGB8888, /* 32bpp Red Green Blue */
-    NSFB_FMT_ABGR8888, /* 32bpp Alpga Blue Green Red */
-    NSFB_FMT_ARGB8888, /* 32bpp Alpga Red Green Blue */
-    NSFB_FMT_RGB888, /* 24 bpp Alpga Red Green Blue */
+    NSFB_FMT_ABGR8888, /* 32bpp Alpha Blue Green Red */
+    NSFB_FMT_ARGB8888, /* 32bpp Alpha Red Green Blue */
+    NSFB_FMT_RGB888, /* 24 bpp Alpha Red Green Blue */
     NSFB_FMT_ARGB1555, /* 16 bpp 555 */ 
     NSFB_FMT_RGB565, /* 16 bpp 565 */ 
     NSFB_FMT_I8, /* 8bpp indexed */
