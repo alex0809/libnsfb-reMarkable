@@ -110,5 +110,5 @@ INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb_plot.h
 INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb_plot_util.h
 INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb_event.h
 INSTALL_ITEMS := $(INSTALL_ITEMS) $(I):include/libnsfb_cursor.h
-INSTALL_ITEMS := $(INSTALL_ITEMS) /lib/pkgconfig:lib$(COMPONENT).pc.in
-INSTALL_ITEMS := $(INSTALL_ITEMS) /lib:$(OUTPUT)
+INSTALL_ITEMS := $(INSTALL_ITEMS) /$(LIBDIR)/pkgconfig:lib$(COMPONENT).pc.in
+INSTALL_ITEMS := $(INSTALL_ITEMS) /$(LIBDIR):$(OUTPUT)
