@@ -7,8 +7,14 @@
  */
 
 #include <stdbool.h>
-#include <endian.h>
 #include <stdlib.h>
+
+#ifndef _WIN32
+#include <endian.h>
+#else
+#define __BYTE_ORDER __BYTE_ORDER__
+#define __BIG_ENDIAN __ORDER_BIG_ENDIAN__
+#endif
 
 #include "libnsfb.h"
 #include "libnsfb_plot.h"

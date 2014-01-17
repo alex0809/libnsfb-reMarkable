@@ -8,7 +8,6 @@
  */
 
 #include <stdbool.h>
-#include <endian.h>
 #include <stdlib.h>
 
 #include "libnsfb.h"
