@@ -415,8 +415,7 @@ sdlcopy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 static int sdl_set_geometry(nsfb_t *nsfb, int width, int height,
         enum nsfb_format_e format)
 {
-    if (nsfb->surface_priv != NULL)
-        return -1; /* fail if surface already initialised */
+    SDL_Surface *sdl_screen;
 
     nsfb->width = width;
     nsfb->height = height;
@@ -426,6 +425,21 @@ static int sdl_set_geometry(nsfb_t *nsfb, int width, int height,
     select_plotters(nsfb);
 
     nsfb->plotter_fns->copy = sdlcopy;
+
+    if (nsfb->surface_priv != NULL) {
+        sdl_screen = SDL_SetVideoMode(nsfb->width,
+                                      nsfb->height,
+                                      nsfb->bpp,
+                                      SDL_SWSURFACE | SDL_RESIZABLE);
+        if (sdl_screen == NULL ) {
+            fprintf(stderr, "Unable to resize video: %s\n", SDL_GetError());
+            return -1;
+        }
+
+        nsfb->surface_priv = sdl_screen;
+        nsfb->ptr = sdl_screen->pixels;
+        nsfb->linelen = sdl_screen->pitch;
+    }
 
     return 0;
 }
@@ -452,7 +466,7 @@ static int sdl_initialise(nsfb_t *nsfb)
     sdl_screen = SDL_SetVideoMode(nsfb->width,
                                   nsfb->height,
                                   nsfb->bpp,
-                                  SDL_SWSURFACE);
+                                  SDL_SWSURFACE | SDL_RESIZABLE);
 
     if (sdl_screen == NULL ) {
         fprintf(stderr, "Unable to set video: %s\n", SDL_GetError());
@@ -533,7 +547,7 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 
     if (timeout == 0) {
         got_event = SDL_PollEvent(&sdlevent);
-    }  else {
+    } else {
         if (timeout > 0) {
             /* setup wake timer to ensure the wait event below exits no later
              * than when the timeout has occoured.
@@ -638,6 +652,11 @@ static bool sdl_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 	event->value.controlcode = NSFB_CONTROL_TIMEOUT;
 	break;
 
+    case SDL_VIDEORESIZE:
+	event->type = NSFB_EVENT_RESIZE;
+	event->value.resize.w = sdlevent.resize.w;
+	event->value.resize.h = sdlevent.resize.h;
+	break;
     }
 
     return true;

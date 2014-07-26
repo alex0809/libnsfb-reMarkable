@@ -18,6 +18,7 @@ enum nsfb_event_type_e {
     NSFB_EVENT_KEY_UP,
     NSFB_EVENT_MOVE_RELATIVE,
     NSFB_EVENT_MOVE_ABSOLUTE,
+    NSFB_EVENT_RESIZE
 };
 
 
@@ -194,6 +195,10 @@ struct nsfb_event_s {
             int y;
             int z;
         } vector;
+        struct {
+            int w;	/**< Width in pixels */
+            int h;	/**< Height in pixels */
+        } resize;	/**< Window resize event: NSFB_EVENT_RESIZE */
     } value;
 };
 
