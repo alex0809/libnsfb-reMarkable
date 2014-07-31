@@ -149,7 +149,6 @@ glyph1(nsfb_t *nsfb,
         int width;
         int height;
         const size_t line_len = PLOT_LINELEN(nsfb->linelen);
-        const int first_col = 1 << (loc->x1 - loc->x0 - 1);
         const uint8_t *row;
 
         if (!nsfb_plot_clip_ctx(nsfb, loc))
@@ -172,7 +171,7 @@ glyph1(nsfb_t *nsfb,
         for (; pvideo < pvideo_limit; pvideo += line_len) {
                 for (xloop = xoff; xloop < width; xloop++) {
 
-                        if ((*row & (first_col >> xloop)) != 0) {
+                        if (row[xloop / 8] & ((1<<7) >> (xloop % 8))) {
                                 *(pvideo + xloop) = fgcol;
                         }
                 }
