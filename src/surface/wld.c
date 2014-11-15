@@ -7,6 +7,7 @@
  */
 
 #define _XOPEN_SOURCE 500
+#define _GNU_SOURCE
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -32,6 +33,8 @@
 #include "surface.h"
 #include "plot.h"
 #include "cursor.h"
+
+#define UNUSED(x) ((x) = (x))
 
 struct wld_event {
     struct wld_event *next;
@@ -672,6 +675,7 @@ wld_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
     /* select default sw plotters for format */
     select_plotters(nsfb);
 
+    return 0;
 }
 
 #if 0
@@ -861,6 +865,8 @@ shm_format(void *ctx, struct wl_shm *wl_shm, uint32_t format)
 {
     struct wld_connection* connection = ctx;
 
+    UNUSED(wl_shm);
+
     connection->shm_formats |= (1 << format);
 }
 
@@ -902,7 +908,13 @@ pointer_handle_enter(void *data, struct wl_pointer *pointer,
 
 	widget = window_find_widget(window, sx, sy);
 	input_set_focus_widget(input, widget, sx, sy);
-
+#else
+	UNUSED(data);
+	UNUSED(pointer);
+	UNUSED(serial);
+	UNUSED(surface);
+	UNUSED(sx_w);
+	UNUSED(sy_w);
 #endif
 }
 
@@ -915,6 +927,11 @@ pointer_handle_leave(void *data, struct wl_pointer *pointer,
 
 	input->display->serial = serial;
 	input_remove_pointer_focus(input);
+#else
+	UNUSED(data);
+	UNUSED(pointer);
+	UNUSED(serial);
+	UNUSED(surface);
 #endif
 }
 
@@ -955,6 +972,9 @@ pointer_handle_motion(void *data,
     struct wld_input *input = data;
     struct wld_event *event;
 
+    UNUSED(pointer);
+    UNUSED(time);
+
     event = calloc(1, sizeof(struct wld_event));
 
     event->event.type = NSFB_EVENT_MOVE_ABSOLUTE;
@@ -972,6 +992,10 @@ pointer_handle_button(void *data, struct wl_pointer *pointer, uint32_t serial,
     struct wld_input *input = data;
     struct wld_event *event;
     enum wl_pointer_button_state state = state_w;
+
+    UNUSED(pointer);
+    UNUSED(serial);
+    UNUSED(time);
 
     event = calloc(1, sizeof(struct wld_event));
 
@@ -1041,6 +1065,12 @@ pointer_handle_axis(void *data, struct wl_pointer *pointer,
 					input, time,
 					axis, value,
 					widget->user_data);
+#else
+	UNUSED(data);
+	UNUSED(pointer);
+	UNUSED(time);
+	UNUSED(axis);
+	UNUSED(value);
 #endif
 }
 
@@ -1084,8 +1114,17 @@ seat_handle_capabilities(void *data,
 #endif
 }
 
+static void
+seat_name(void *data, struct wl_seat *seat, const char *name)
+{
+    UNUSED(data);
+    UNUSED(seat);
+    UNUSED(name);
+}
+
 static const struct wl_seat_listener seat_listener = {
 	seat_handle_capabilities,
+	seat_name
 };
 
 /**
@@ -1128,6 +1167,8 @@ registry_handle_global(void *ctx,
 		       uint32_t version)
 {
     struct wld_connection* connection = ctx;
+
+    UNUSED(version);
 
     /* process new interfaces appearing on the global registry */
 
@@ -1174,6 +1215,9 @@ registry_handle_global_remove(void *data,
 			      struct wl_registry *registry,
 			      uint32_t name)
 {
+    UNUSED(data);
+    UNUSED(registry);
+    UNUSED(name);
 }
 
 /** registry global callback handlers */
@@ -1303,18 +1347,26 @@ static void
 handle_ping(void *data, struct wl_shell_surface *shell_surface,
 							uint32_t serial)
 {
-	wl_shell_surface_pong(shell_surface, serial);
+    UNUSED(data);
+    wl_shell_surface_pong(shell_surface, serial);
 }
 
 static void
 handle_configure(void *data, struct wl_shell_surface *shell_surface,
 		 uint32_t edges, int32_t width, int32_t height)
 {
+    UNUSED(data);
+    UNUSED(shell_surface);
+    UNUSED(edges);
+    UNUSED(width);
+    UNUSED(height);
 }
 
 static void
 handle_popup_done(void *data, struct wl_shell_surface *shell_surface)
 {
+    UNUSED(data);
+    UNUSED(shell_surface);
 }
 
 static const struct wl_shell_surface_listener shell_surface_listener = {
@@ -1432,9 +1484,11 @@ os_create_anonymous_file(off_t size)
 static void
 buffer_release(void *data, struct wl_buffer *buffer)
 {
-	struct wld_shm_buffer *shmbuf = data;
+    struct wld_shm_buffer *shmbuf = data;
 
-	shmbuf->inuse = false;
+    UNUSED(buffer);
+
+    shmbuf->inuse = false;
 }
 
 static const struct wl_buffer_listener buffer_listener = {
@@ -1583,6 +1637,8 @@ static int wld_finalise(nsfb_t *nsfb)
     free_window(wldstate->window);
 
     free_connection(wldstate->connection);
+
+    return 0;
 }
 
 #if 0
