@@ -33,7 +33,7 @@ $(eval $(call pkg_config_package_available,NSFB_WLD_AVAILABLE,wayland-client))
 
 # surfaces not detectable via pkg-config 
 NSFB_ABLE_AVAILABLE := no
-ifeq ($(findstring linux,$(BUILD)),linux)
+ifeq ($(findstring linux,$(HOST)),linux)
   NSFB_LINUX_AVAILABLE := yes
 else
   NSFB_LINUX_AVAILABLE := no
