@@ -1,3 +1,9 @@
+#!/bin/make
+#
+# Makefile for libnsfb
+#
+# Copyright 2013-2015 Vincent Sanders <vince@netsurf-browser.org>
+
 # Component settings
 COMPONENT := nsfb
 COMPONENT_VERSION := 0.1.3
@@ -15,13 +21,24 @@ TESTRUNNER = test/runtest.sh $(BUILDDIR) $(EXEEXT)
 # Toolchain flags
 WARNFLAGS := -Wall -Wextra -Wundef -Wpointer-arith -Wcast-align \
 	-Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes \
-	-Wmissing-declarations -Wnested-externs -Werror
-
+	-Wmissing-declarations -Wnested-externs
+# Non release variants should make compile warnings errors
+ifneq ($(VARIANT),release)
+  WARNFLAGS:= $(WARNFLAGS) -Werror
+endif
 # would like these flags but gcc earlier than 4.4 fail
 #-pedantic -Wno-overlength-strings # For nsglobe.c
 
-CFLAGS := -g -std=c99 -D_BSD_SOURCE -D_POSIX_C_SOURCE=200112L \
-	-I$(CURDIR)/include/ -I$(CURDIR)/src $(WARNFLAGS) $(CFLAGS) -Wno-error
+CFLAGS := -D_BSD_SOURCE -D_DEFAULT_SOURCE -D_POSIX_C_SOURCE=200112L \
+	-I$(CURDIR)/include/ -I$(CURDIR)/src \
+	$(WARNFLAGS) $(CFLAGS)
+# Cope with gcc 2
+ifneq ($(GCCVER),2)
+  CFLAGS := $(CFLAGS) -std=c99
+else
+  # __inline__ is a GCCism
+  CFLAGS := $(CFLAGS) -Dinline="__inline__"
+endif
 
 NSFB_XCB_PKG_NAMES := xcb xcb-icccm xcb-image xcb-keysyms xcb-atom
 
