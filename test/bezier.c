@@ -55,6 +55,11 @@ int main(int argc, char **argv)
     /* get the geometry of the whole screen */
     box.x0 = box.y0 = 0;
     nsfb_get_geometry(nsfb, &box.x1, &box.y1, NULL);
+    if ((box.x1 == 0) || (box.y1 == 0)) {
+        /* if surface was created with no size set a default */
+        nsfb_set_geometry(nsfb, 800, 600, NSFB_FMT_ANY);
+        nsfb_get_geometry(nsfb, &box.x1, &box.y1, NULL);
+    }
 
     nsfb_get_buffer(nsfb, &fbptr, &fbstride);
 

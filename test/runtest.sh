@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 TEST_PATH=$1
 
 TEST_FRONTEND=ram
