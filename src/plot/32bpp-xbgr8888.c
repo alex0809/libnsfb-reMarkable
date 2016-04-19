@@ -42,9 +42,7 @@ static inline nsfb_colour_t pixel_to_colour(UNUSED nsfb_t *nsfb, uint32_t pixel)
 /* convert a colour value to a 32bpp pixel value ready for screen output */
 static inline uint32_t colour_to_pixel(UNUSED nsfb_t *nsfb, nsfb_colour_t c)
 {
-	return ((pixel & 0xFF) << 24) |
-                ((pixel & 0xFF00) <<  8) |
-                ((pixel & 0xFF0000) >>  8);
+	return ((c & 0xFF) << 24) | ((c & 0xFF00) << 8) | ((c & 0xFF0000) >> 8);
 }
 #else /* __BYTE_ORDER == __BIG_ENDIAN */
 static inline nsfb_colour_t pixel_to_colour(UNUSED nsfb_t *nsfb, uint32_t pixel)
