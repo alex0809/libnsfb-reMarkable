@@ -1,4 +1,52 @@
+/*
+ * Copyright 2009 Vincent Sanders <vince@simtec.co.uk>
+ *
+ * This file is part of libnsfb, http://www.netsurf-browser.org/
+ * Licenced under the MIT License,
+ *                http://www.opensource.org/licenses/mit-license.php
+ */
 
+/**
+ * \file internal plotter interace.
+ */
+
+#ifndef LIBNSFB_PLOT_H
+#define LIBNSFB_PLOT_H
+
+/*
+ * Do the best we can to determine integer byte ordering
+ *
+ * This series of tests attempts to determine, at compile time, if the integer
+ * ordering in memory is big or little endian. This allows the plotters to make
+ * assumptions about memory ordering to greatly improve software rendering
+ * performance.
+ *
+ * \note This utterly ignores PDP endianess
+ */
+#undef NSFB_BE_BYTE_ORDER
+#if defined(_WIN32)
+    /* windows does not have endian.h but uses these macros */
+    #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        #define NSFB_BE_BYTE_ORDER
+    #endif
+#else /* defined(_WIN32) */
+    #include <endian.h>
+    #if defined(__BYTE_ORDER__)
+        #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+            #define NSFB_BE_BYTE_ORDER
+        #endif
+    #elif defined(__BYTE_ORDER)
+        #if __BYTE_ORDER == __BIG_ENDIAN
+            #define NSFB_BE_BYTE_ORDER
+        #endif
+    #elif defined(BYTE_ORDER)
+        #if BYTE_ORDER == BIG_ENDIAN
+            #define NSFB_BE_BYTE_ORDER
+        #endif
+    #else
+        #error "Endian determination failed"
+    #endif
+#endif
 
 /** Clears plotting area to a flat colour (if needed)
  */
@@ -127,3 +175,4 @@ typedef struct nsfb_plotter_fns_s {
 
 bool select_plotters(nsfb_t *nsfb);
 
+#endif
