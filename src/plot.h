@@ -29,7 +29,13 @@
     #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
         #define NSFB_BE_BYTE_ORDER
     #endif
-#else /* defined(_WIN32) */
+#elif defined(OS_MACOSX)
+/* mac os x has the include somewhere different */
+    #include <machine/endian.h>
+    #if BYTE_ORDER == BIG_ENDIAN
+        #define NSFB_BE_BYTE_ORDER
+    #endif
+#else
     #include <endian.h>
     #if defined(__BYTE_ORDER__)
         #if __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
