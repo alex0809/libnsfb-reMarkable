@@ -32,7 +32,7 @@
 #elif defined(__APPLE__)
     /* mac os x has the include somewhere different */
     #include <machine/endian.h>
-    #if BYTE_ORDER == BIG_ENDIAN
+    #if __DARWIN_BYTE_ORDER == __DARWIN_BIG_ENDIAN
         #define NSFB_BE_BYTE_ORDER
     #endif
 #else
