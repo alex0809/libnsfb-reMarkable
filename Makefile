@@ -6,7 +6,7 @@
 
 # Component settings
 COMPONENT := nsfb
-COMPONENT_VERSION := 0.1.4
+COMPONENT_VERSION := 0.1.5
 # Default to a static library
 COMPONENT_TYPE ?= lib-static
 
