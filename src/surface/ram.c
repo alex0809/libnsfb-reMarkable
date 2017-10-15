@@ -35,18 +35,34 @@ static int ram_defaults(nsfb_t *nsfb)
 
 static int ram_initialise(nsfb_t *nsfb)
 {
-    size_t size = (nsfb->width * nsfb->height * nsfb->bpp) / 8;
+    size_t size;
+    uint8_t *fbptr;
 
-    nsfb->ptr = realloc(nsfb->ptr, size);
+    size = (nsfb->width * nsfb->height * nsfb->bpp) / 8;
+    fbptr = realloc(nsfb->ptr, size);
+    if (fbptr == NULL) {
+        return -1;
+    }
+
+    nsfb->ptr = fbptr;
     nsfb->linelen = (nsfb->width * nsfb->bpp) / 8;
 
     return 0;
 }
 
-static int ram_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
+static int
+ram_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
 {
     int startsize; 
     int endsize;
+
+    int prev_width;
+    int prev_height;
+    enum nsfb_format_e prev_format;
+
+    prev_width = nsfb->width;
+    prev_height = nsfb->height;
+    prev_format = nsfb->format;
 
     startsize = (nsfb->width * nsfb->height * nsfb->bpp) / 8;
 
@@ -65,10 +81,23 @@ static int ram_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_forma
     /* select soft plotters appropriate for format */
     select_plotters(nsfb);
 
+    /* reallocate surface memory if necessary */
     endsize = (nsfb->width * nsfb->height * nsfb->bpp) / 8;
     if ((nsfb->ptr != NULL) && (startsize != endsize)) {
-	nsfb->ptr = realloc(nsfb->ptr, endsize);
+        uint8_t *fbptr;
+        fbptr = realloc(nsfb->ptr, endsize);
+        if (fbptr == NULL) {
+            /* allocation failed so put everything back as it was */
+            nsfb->width = prev_width;
+            nsfb->height = prev_height;
+            nsfb->format = prev_format;
+            select_plotters(nsfb);
+
+            return -1;
+        }
+        nsfb->ptr = fbptr;
     }
+
     nsfb->linelen = (nsfb->width * nsfb->bpp) / 8;
 
     return 0;

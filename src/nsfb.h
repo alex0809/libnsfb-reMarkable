@@ -14,7 +14,8 @@
 #include <stdint.h>
 
 
-/** NS Framebuffer context
+/**
+ * Framebuffer context
  */
 struct nsfb_s {
     int width; /**< Visible width. */

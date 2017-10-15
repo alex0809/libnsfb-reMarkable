@@ -99,7 +99,13 @@ bool nsfb_cursor_plot(nsfb_t *nsfb, struct nsfb_cursor_s *cursor)
 
     sav_size = cursor->sav_width * cursor->sav_height * sizeof(nsfb_colour_t);
     if (cursor->sav_size < sav_size) {
-        cursor->sav = realloc(cursor->sav, sav_size);
+        nsfb_colour_t *nsav;
+
+        nsav = realloc(cursor->sav, sav_size);
+        if (nsav == NULL) {
+            return false;
+        }
+        cursor->sav = nsav;
         cursor->sav_size = sav_size;
     }
 

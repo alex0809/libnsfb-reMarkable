@@ -846,10 +846,19 @@ static int x_initialise(nsfb_t *nsfb)
                        mask, values);
     /* set size hits on window */
     hints = xcb_alloc_size_hints();
-    xcb_size_hints_set_max_size(hints, xstate->image->width, xstate->image->height);
-    xcb_size_hints_set_min_size(hints, xstate->image->width, xstate->image->height);
-    xcb_set_wm_size_hints(xstate->connection, xstate->window, WM_NORMAL_HINTS, hints);
-    xcb_free_size_hints(hints);
+    if (hints != NULL) {
+        xcb_size_hints_set_max_size(hints,
+                                    xstate->image->width,
+                                    xstate->image->height);
+        xcb_size_hints_set_min_size(hints,
+                                    xstate->image->width,
+                                    xstate->image->height);
+        xcb_set_wm_size_hints(xstate->connection,
+                              xstate->window,
+                              WM_NORMAL_HINTS,
+                              hints);
+        xcb_free_size_hints(hints);
+    }
 
     /* create backing pixmap */
     xstate->pmap = xcb_generate_id(xstate->connection);

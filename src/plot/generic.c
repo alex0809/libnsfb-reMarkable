@@ -799,6 +799,9 @@ path(nsfb_t *nsfb, int pathc, nsfb_plot_pathop_t *pathop, nsfb_plot_pen_t *pen)
 
     /* allocate storage for the vertexes */
     curpt = pts = malloc(ptc * sizeof(nsfb_point_t));
+    if (curpt == NULL) {
+        return false;
+    }
 
     for (path_loop = 0; path_loop < pathc; path_loop++) {
         switch (pathop[path_loop].operation) {
@@ -906,10 +909,15 @@ bool select_plotters(nsfb_t *nsfb)
 	return false;
     }
 
-    if (nsfb->plotter_fns != NULL)
+    if (nsfb->plotter_fns != NULL) {
 	free(nsfb->plotter_fns);
+    }
 
     nsfb->plotter_fns = calloc(1, sizeof(nsfb_plotter_fns_t));
+    if (nsfb->plotter_fns == NULL) {
+        return false;
+    }
+
     memcpy(nsfb->plotter_fns, table, sizeof(nsfb_plotter_fns_t));
 
     /* set the generics */
