@@ -213,7 +213,7 @@ glyph8(nsfb_t *nsfb,
 
         for (yloop = 0; yloop < height; yloop++) {
                 for (xloop = 0; xloop < width; xloop++) {
-                        abpixel = (pixel[((yoff + yloop) * pitch) + xloop + xoff] << 24) | fgcol;
+                        abpixel = ((unsigned)pixel[((yoff + yloop) * pitch) + xloop + xoff] << 24) | fgcol;
                         if ((abpixel & 0xFF000000) != 0) {
                                 /* pixel is not transparent */
                                 if ((abpixel & 0xFF000000) != 0xFF000000) {
