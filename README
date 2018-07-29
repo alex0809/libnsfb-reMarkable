@@ -16,10 +16,12 @@ Requirements
     + GNU make or compatible
     + Pkg-config
 
-  Libnsfb also requires the following libraries to be installed:
+  The following libraries may also be installed:
 
-    +  SDL 1.2 (for the SDL backend)
-    +  libxcb* (for the X11 backend)
+    +  SDL 1.2 (for the SDL surface)
+    +  libxcb* (for the X11 surface)
+    *  wayland-client (for wayland surface)
+    *  libvncserver (for vnc surface)
 
 Compilation
 -----------
