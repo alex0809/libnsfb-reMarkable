@@ -128,6 +128,10 @@ static bool establish_crossing_value(int x, int y, int x0, int y0,
  */
 static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 {
+	enum {
+		NO_MIN = INT_MIN + 1,
+		NO_MAX = INT_MAX - 1,
+	};
 	int i;
 	int p_x0, p_y0;
 	int p_x1, p_y1;
@@ -137,16 +141,16 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 	bool crossing_value;
 	bool found_span_start = false;
 
-	x0_min = x1_min = INT_MIN;
+	x0_min = x1_min = NO_MIN;
 	x0c = x1c = 0;
 
 	/* search row for next span, returning it if one exists */
 	do {
 		/* reset endpoint info, if valid span endpoints not found */
 		if (!found_span_start) {
-			*x0 = INT_MAX;
+			*x0 = NO_MAX;
 		}
-		*x1 = INT_MAX;
+		*x1 = NO_MAX;
 
 		/* search all lines in polygon */
 		for (i = 0; i < n; i = i + 2) {
@@ -242,7 +246,7 @@ static bool find_span(const int *p, int n, int x, int y, int *x0, int *x1)
 			x0_min = *x0 + 1;
 		x1_min = *x1 + 1;
 
-	} while (*x1 != INT_MAX);
+	} while (*x1 != NO_MAX);
 
 	/* no spans found */
 	return false;
