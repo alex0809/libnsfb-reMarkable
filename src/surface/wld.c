@@ -1077,11 +1077,11 @@ pointer_handle_axis(void *data, struct wl_pointer *pointer,
 }
 
 static const struct wl_pointer_listener pointer_listener = {
-	pointer_handle_enter,
-	pointer_handle_leave,
-	pointer_handle_motion,
-	pointer_handle_button,
-	pointer_handle_axis,
+	.enter  = pointer_handle_enter,
+	.leave  = pointer_handle_leave,
+	.motion = pointer_handle_motion,
+	.button = pointer_handle_button,
+	.axis   = pointer_handle_axis,
 };
 
 static void
