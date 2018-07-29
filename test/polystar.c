@@ -118,7 +118,10 @@ int main(int argc, char **argv)
 	    }
 
 	    nsfb_update(nsfb, &box);
-	    sleepMilli(100);
+
+	    if (fetype != NSFB_SURFACE_RAM) {
+	        sleepMilli(400);
+	    }
     }
     
     /* wait for quit event or timeout */

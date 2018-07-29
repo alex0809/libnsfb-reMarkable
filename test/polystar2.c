@@ -112,7 +112,10 @@ int main(int argc, char **argv)
         sides += 2;
 
         nsfb_update(nsfb, &box);
-        sleepMilli(400);
+
+        if (fetype != NSFB_SURFACE_RAM) {
+            sleepMilli(400);
+        }
     }
 
     /* wait for quit event or timeout */
