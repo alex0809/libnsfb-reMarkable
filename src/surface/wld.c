@@ -9,7 +9,16 @@
 #define _XOPEN_SOURCE 500
 
 #include <stdbool.h>
+
+/* deal with using -std=c99 and glibc changed to no have mkostemp with it set */
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
 #include <stdlib.h>
+#undef _GNU_SOURCE
+#else
+#include <stdlib.h>
+#endif
+
 #include <stdio.h>
 #include <string.h>
 
