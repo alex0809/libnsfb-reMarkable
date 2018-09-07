@@ -35,6 +35,16 @@
     #if __DARWIN_BYTE_ORDER == __DARWIN_BIG_ENDIAN
         #define NSFB_BE_BYTE_ORDER
     #endif
+#elif defined(__FreeBSD__)
+    /* freebsd has the include somewhere different */
+    #include <machine/endian.h>
+    if defined(BYTE_ORDER)
+        #if BYTE_ORDER == BIG_ENDIAN
+            #define NSFB_BE_BYTE_ORDER
+        #endif
+    #else
+        #error "Endian determination failed"
+    #endif
 #else
     #include <endian.h>
     #if defined(__BYTE_ORDER__)
