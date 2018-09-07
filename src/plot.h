@@ -38,7 +38,7 @@
 #elif defined(__FreeBSD__)
     /* freebsd has the include somewhere different */
     #include <machine/endian.h>
-    if defined(BYTE_ORDER)
+    #if defined(BYTE_ORDER)
         #if BYTE_ORDER == BIG_ENDIAN
             #define NSFB_BE_BYTE_ORDER
         #endif
