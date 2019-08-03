@@ -66,9 +66,7 @@ static inline uint32_t colour_to_pixel(UNUSED nsfb_t *nsfb, nsfb_colour_t c)
  */
 static inline nsfb_colour_t pixel_to_colour(UNUSED nsfb_t *nsfb, uint32_t pixel)
 {
-        return ((pixel & 0xFF) << 16) |
-                ((pixel & 0xFF00)) |
-                ((pixel & 0xFF0000) >> 16);
+        return (((pixel >> 16) | (pixel << 16)) & 0xff00ff) | (pixel & 0xff00);
 }
 
 
@@ -81,7 +79,7 @@ static inline nsfb_colour_t pixel_to_colour(UNUSED nsfb_t *nsfb, uint32_t pixel)
  */
 static inline uint32_t colour_to_pixel(UNUSED nsfb_t *nsfb, nsfb_colour_t c)
 {
-        return ((c & 0xff0000) >> 16) | (c & 0xff00) | ((c & 0xff) << 16);
+        return (((c >> 16) | (c << 16)) & 0xff00ff) | (c & 0xff00);
 }
 
 #endif
