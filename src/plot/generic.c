@@ -615,13 +615,13 @@ copy(nsfb_t *nsfb, nsfb_bbox_t *srcbox, nsfb_bbox_t *dstbox)
 static bool arc(nsfb_t *nsfb, int x, int y, int radius, int angle1,
 		int angle2, nsfb_colour_t c)
 {
-	nsfb=nsfb;
-	x = x;
-	y = y;
-	radius = radius;
-	c = c;
-	angle1=angle1;
-	angle2=angle2;
+	(void)nsfb;
+	(void)x;
+	(void)y;
+	(void)radius;
+	(void)c;
+	(void)angle1;
+	(void)angle2;
 	return true;
 }
 
