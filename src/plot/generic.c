@@ -267,7 +267,7 @@ static bool polygon(nsfb_t *nsfb, const int *p, unsigned int n, nsfb_colour_t c)
 	int poly_x0, poly_y0; /* Bounding box top left corner */
 	int poly_x1, poly_y1; /* Bounding box bottom right corner */
 	int i, j; /* indexes */
-	int x0, x1; /* filled span extents */
+	int x0 = 0, x1 = 0; /* filled span extents */
 	int y; /* current y coordinate */
 	int y_max; /* bottom of plot area */
 	nsfb_bbox_t fline;
