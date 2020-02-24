@@ -35,13 +35,14 @@ typedef struct nsfb_bbox_s {
 /** The type of framebuffer surface. */
 enum nsfb_type_e {
     NSFB_SURFACE_NONE = 0, /**< No surface */
-    NSFB_SURFACE_RAM, /**< RAM surface */
     NSFB_SURFACE_SDL, /**< SDL surface */
-    NSFB_SURFACE_LINUX, /**< Linux framebuffer surface */
-    NSFB_SURFACE_VNC, /**< VNC surface */
-    NSFB_SURFACE_ABLE, /**< ABLE framebuffer surface */
     NSFB_SURFACE_X, /**< X windows surface */
-    NSFB_SURFACE_WL /**< Wayland surface */
+    NSFB_SURFACE_WL, /**< Wayland surface */
+    NSFB_SURFACE_VNC, /**< VNC surface */
+    NSFB_SURFACE_LINUX, /**< Linux framebuffer surface */
+    NSFB_SURFACE_ABLE, /**< ABLE framebuffer surface */
+    NSFB_SURFACE_RAM, /**< RAM surface */
+    NSFB_SURFACE_COUNT, /**< The number of surface kinds */
 };
 
 enum nsfb_format_e {
