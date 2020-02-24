@@ -151,6 +151,17 @@ nsfb_type_from_name(const char *name)
     return NSFB_SURFACE_NONE;
 }
 
+/* exported interface defined in libnsfb.h */
+void
+nsfb_enumerate_surface_types(surface_enumeration_cb cb, void *context)
+{
+    int fend_loop;
+
+    for (fend_loop = 0; fend_loop < surface_count; fend_loop++) {
+	cb(context, surfaces[fend_loop].name, surfaces[fend_loop].type);
+    }
+}
+
 /*
  * Local variables:
  *  c-basic-offset: 4
