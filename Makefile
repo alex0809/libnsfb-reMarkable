@@ -2,11 +2,11 @@
 #
 # Makefile for libnsfb
 #
-# Copyright 2013-2015 Vincent Sanders <vince@netsurf-browser.org>
+# Copyright 2013-2020 Vincent Sanders <vince@netsurf-browser.org>
 
 # Component settings
 COMPONENT := nsfb
-COMPONENT_VERSION := 0.2.1
+COMPONENT_VERSION := 0.2.2
 # Default to a static library
 COMPONENT_TYPE ?= lib-static
 
