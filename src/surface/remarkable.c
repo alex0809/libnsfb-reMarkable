@@ -9,6 +9,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
+#include <linux/fb.h>
 
 #include "libnsfb.h"
 #include "libnsfb_plot.h"
@@ -18,13 +23,17 @@
 #include "surface.h"
 #include "plot.h"
 
+#include "mxcfb.h"
+
 #define UNUSED(x) ((x) = (x))
 
 static int rm_defaults(nsfb_t *nsfb)
 {
-    nsfb->width = 0;
-    nsfb->height = 0;
-    nsfb->format = NSFB_FMT_ABGR8888;
+    nsfb->width = 1404;
+    nsfb->height = 1872;
+    nsfb->bpp = 16;
+    nsfb->linelen = 2816;
+    nsfb->format = NSFB_FMT_RGB565;
 
     /* select default sw plotters for bpp */
     select_plotters(nsfb);
@@ -35,71 +44,46 @@ static int rm_defaults(nsfb_t *nsfb)
 
 static int rm_initialise(nsfb_t *nsfb)
 {
-    size_t size;
-    uint8_t *fbptr;
+    int fb = open("/dev/fb0", O_RDWR);
 
-    size = (nsfb->width * nsfb->height * nsfb->bpp) / 8;
-    fbptr = realloc(nsfb->ptr, size);
-    if (fbptr == NULL) {
+    if (fb == -1) {
+        fprintf(stderr, "Could not open framebuffer\n");
+        exit(1);
+    }
+
+    struct fb_fix_screeninfo fixScreenInfo;
+    if (ioctl(fb, FBIOGET_FSCREENINFO, &fixScreenInfo) != 0)
+    {
+        close(fb);
+        fprintf(stderr, "FrameBuffer_initialize: could not FBIOGET_FSCREENFINO\n");
+        return -1;
+    }
+    struct fb_var_screeninfo screenInfo;
+    if (ioctl(fb, FBIOGET_VSCREENINFO, &screenInfo) != 0)
+    {
+        close(fb);
+        fprintf(stderr, "FrameBuffer_initialize: could not FBIOGET_VSCREENFINO\n");
         return -1;
     }
 
-    nsfb->ptr = fbptr;
-    nsfb->linelen = (nsfb->width * nsfb->bpp) / 8;
+    // Memory-map the data buffer.
+    int fbsize = screenInfo.yres_virtual * fixScreenInfo.line_length;
+    u_int8_t* mmap_result = mmap(0, fbsize, PROT_READ | PROT_WRITE, MAP_SHARED, fb, 0);
+    if (mmap_result == MAP_FAILED)
+    {
+        close(fb);
+        fprintf(stderr, "mmap failed.\n");
+        return -1;
+    }
 
+    nsfb->ptr = mmap_result;
     return 0;
 }
 
 static int
 rm_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
 {
-    int startsize; 
-    int endsize;
-
-    int prev_width;
-    int prev_height;
-    enum nsfb_format_e prev_format;
-
-    prev_width = nsfb->width;
-    prev_height = nsfb->height;
-    prev_format = nsfb->format;
-
-    startsize = (nsfb->width * nsfb->height * nsfb->bpp) / 8;
-
-    if (width > 0) {
-	nsfb->width = width;
-    }
-
-    if (height > 0) {
-	nsfb->height = height;
-    }
-
-    if (format != NSFB_FMT_ANY) {
-	nsfb->format = format;
-    }
-
-    /* select soft plotters appropriate for format */
-    select_plotters(nsfb);
-
-    /* reallocate surface memory if necessary */
-    endsize = (nsfb->width * nsfb->height * nsfb->bpp) / 8;
-    if ((nsfb->ptr != NULL) && (startsize != endsize)) {
-        uint8_t *fbptr;
-        fbptr = realloc(nsfb->ptr, endsize);
-        if (fbptr == NULL) {
-            /* allocation failed so put everything back as it was */
-            nsfb->width = prev_width;
-            nsfb->height = prev_height;
-            nsfb->format = prev_format;
-            select_plotters(nsfb);
-
-            return -1;
-        }
-        nsfb->ptr = fbptr;
-    }
-
-    nsfb->linelen = (nsfb->width * nsfb->bpp) / 8;
-
+    fprintf(stderr, "rm_set_geometry not implemented!\n");
     return 0;
 }
 
