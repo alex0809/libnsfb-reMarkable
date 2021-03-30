@@ -42,6 +42,7 @@ enum nsfb_type_e {
     NSFB_SURFACE_LINUX, /**< Linux framebuffer surface */
     NSFB_SURFACE_ABLE, /**< ABLE framebuffer surface */
     NSFB_SURFACE_RAM, /**< RAM surface */
+    NSFB_SURFACE_REMARKABLE, /** ReMarkable surface */
     NSFB_SURFACE_COUNT, /**< The number of surface kinds */
 };
 
