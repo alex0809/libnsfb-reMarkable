@@ -105,27 +105,24 @@ static bool rm_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
     return false;
 }
 
-static int rm_update(nsfb_t *nsfb, nsfb_bbox_t *box) {
-    fprintf(stderr, "Surface update called with box: %d->%d %d->%d\n", box->x0, box->x1, box->y0, box->y1);
+#define TEMP_USE_REMARKABLE_DRAW         0x0018
+#define WAVEFORM_MODE_GC16               0x2
+#define EPDC_FLAG_USE_REMARKABLE_DITHER  0x300f30
 
+static int rm_update(nsfb_t *nsfb, nsfb_bbox_t *box) {
     struct mxcfb_update_data update_data;
     struct mxcfb_rect update_rect;
-    update_rect.top = box->x0;
-    update_rect.height = (box->x1 - box->x0);
-    update_rect.left = box->y0;
-    update_rect.width = (box->y1 - box->y0);
-
-    update_rect.top = 0;
-    update_rect.height = 1872;
-    update_rect.width = 1404;
-    update_rect.left = 0;
+    update_rect.left = box->x0;
+    update_rect.width = (box->x1 - box->x0);
+    update_rect.top = box->y0;
+    update_rect.height = (box->y1 - box->y0);
 
     update_data.update_region = update_rect;
-    update_data.waveform_mode = 0x2;
+    update_data.waveform_mode = WAVEFORM_MODE_GC16;
     update_data.update_mode = UPDATE_MODE_PARTIAL;
     update_data.update_marker = 0;
-    update_data.dither_mode = 0x270ce20;
-    update_data.temp = 0xFFFF;
+    update_data.dither_mode = EPDC_FLAG_USE_REMARKABLE_DITHER;
+    update_data.temp = TEMP_USE_REMARKABLE_DRAW;
     update_data.flags = 0;
 
     ioctl(fb, MXCFB_SEND_UPDATE, &update_data);
