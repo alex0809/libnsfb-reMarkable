@@ -10,7 +10,7 @@ SURFACE_HANDLER_$(NSFB_VNC_AVAILABLE) += vnc.c
 SURFACE_HANDLER_$(NSFB_WLD_AVAILABLE) += wld.c
 
 # remarkable surface handler
-SURFACE_HANDLER_yes += remarkable/remarkable.c remarkable/screen.c
+SURFACE_HANDLER_yes += remarkable/remarkable.c remarkable/screen.c remarkable/input.c
 
 DIR_SOURCES := $(SURFACE_HANDLER_yes)
 

@@ -108,6 +108,8 @@ ifeq ($(NSFB_WLD_AVAILABLE),yes)
   REQUIRED_PKGS := $(REQUIRED_PKGS) wayland-client
 endif 
 
+$(eval $(call pkg_config_package_add_flags,libevdev,CFLAGS))
+
 TESTLDFLAGS := -lm -Wl,--whole-archive -l$(COMPONENT) -Wl,--no-whole-archive $(TESTLDFLAGS)
 
 include $(NSBUILD)/Makefile.top

@@ -4,3 +4,4 @@ gcc
 -Isrc/plot/
 -Isrc/surface/
 -Isrc/surface/remarkable
+-I/usr/include/libevdev-1.0/

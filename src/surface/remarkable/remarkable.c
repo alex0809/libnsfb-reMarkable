@@ -21,6 +21,7 @@
 #include "plot.h"
 #include "screen.h"
 #include "log.h"
+#include "input.h"
 
 #define UNUSED(x) ((x) = (x))
 
@@ -51,6 +52,11 @@ static int rm_defaults(nsfb_t *nsfb)
 
 static int rm_initialise(nsfb_t *nsfb)
 {
+    if (evdev_open_all() != 0)
+    {
+        ERROR_LOG("Could not open evdev devices. Exiting");
+        exit(1);
+    }
     struct screen_info scrinfo;
     if (load_screen_info(&scrinfo) != 0)
     {
@@ -83,15 +89,14 @@ static int rm_finalise(nsfb_t *nsfb)
 {
     free(nsfb->ptr);
     close_fb();
+    evdev_close_all();
 
     return 0;
 }
 
 static bool rm_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
-    UNUSED(nsfb);
-    UNUSED(event);
-    UNUSED(timeout);
+    get_next_event();
     return false;
 }
 
