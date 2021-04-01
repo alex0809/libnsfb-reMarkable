@@ -1,0 +1,6 @@
+gcc
+-Iinclude/
+-Isrc/
+-Isrc/plot/
+-Isrc/surface/
+-Isrc/surface/remarkable
