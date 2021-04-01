@@ -1,14 +1,21 @@
 #include <stdbool.h>
 
 #include "libnsfb.h"
+#include "mxcfb.h"
 
 #define TEMP_USE_REMARKABLE_DRAW         0x0018
+
 #define WAVEFORM_MODE_GC16               0x2
+#define WAVEFORM_MODE_GC4	             0x3
+#define FAST_WAVEFORM_MODE               WAVEFORM_MODE_GC4
+#define SLOW_WAVEFORM_MODE               WAVEFORM_MODE_GC16
+
 #define EPDC_FLAG_USE_REMARKABLE_DITHER  0x300f30
 
 #define DEFAULT_TEMP                     TEMP_USE_REMARKABLE_DRAW
-#define DEFAULT_WAVEFORM_MODE            WAVEFORM_MODE_GC16
+#define DEFAULT_WAVEFORM_MODE            FAST_WAVEFORM_MODE
 #define DEFAULT_EPDC_FLAG                EPDC_FLAG_USE_REMARKABLE_DITHER
+
 #define FRAMEBUFFER_FILE                 "/dev/fb0"
 
 struct screen_info {
