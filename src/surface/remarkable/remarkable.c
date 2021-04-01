@@ -20,6 +20,7 @@
 #include "surface.h"
 #include "plot.h"
 #include "screen.h"
+#include "log.h"
 
 #define UNUSED(x) ((x) = (x))
 
@@ -28,7 +29,7 @@ static int rm_defaults(nsfb_t *nsfb)
     struct screen_info scrinfo;
     if (load_screen_info(&scrinfo) != 0)
     {
-        fprintf(stderr, "Could not successfully load screen info. Exiting.");
+        ERROR_LOG("Could not successfully load screen info. Exiting.");
         exit(1);
     }
 
@@ -41,7 +42,7 @@ static int rm_defaults(nsfb_t *nsfb)
     /* select default sw plotters for bpp */
     select_plotters(nsfb);
 
-    fprintf(stderr, "Screen defaults set to: width=%d, height=%d, bpp=%d, linelen=%d\n",
+    DEBUG_LOG("Screen defaults set to: width=%d, height=%d, bpp=%d, linelen=%d",
             nsfb->width, nsfb->height, nsfb->bpp, nsfb->linelen);
 
     return 0;
@@ -53,25 +54,27 @@ static int rm_initialise(nsfb_t *nsfb)
     struct screen_info scrinfo;
     if (load_screen_info(&scrinfo) != 0)
     {
-        fprintf(stderr, "Could not successfully load screen info. Exiting.\n");
+        ERROR_LOG("Could not successfully load screen info. Exiting.");
         exit(1);
     }
     u_int8_t* mmap_result = mmap(NULL, scrinfo.fbsize, PROT_READ | PROT_WRITE, MAP_SHARED, fb, 0);
     if (mmap_result == MAP_FAILED)
     {
         close_fb();
-        fprintf(stderr, "Framebuffer mmap failed. Exiting.");
+        ERROR_LOG("Framebuffer mmap failed. Exiting.\n");
         exit(1);
     }
 
     nsfb->ptr = mmap_result;
+
+    DEBUG_LOG("Framebuffer mmap successful and assigned to nsfb ptr.");
     return 0;
 }
 
 static int
 rm_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
 {
-    fprintf(stderr, "rm_set_geometry not implemented!\n");
+    DEBUG_LOG("rm_set_geometry not implemented!");
     return 0;
 }
 

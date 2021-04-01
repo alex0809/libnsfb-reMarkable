@@ -9,6 +9,7 @@
 #define DEFAULT_TEMP                     TEMP_USE_REMARKABLE_DRAW
 #define DEFAULT_WAVEFORM_MODE            WAVEFORM_MODE_GC16
 #define DEFAULT_EPDC_FLAG                EPDC_FLAG_USE_REMARKABLE_DITHER
+#define FRAMEBUFFER_FILE                 "/dev/fb0"
 
 struct screen_info {
     int height;
