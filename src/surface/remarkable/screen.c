@@ -60,7 +60,7 @@ int update_region(nsfb_bbox_t *box)
 
     ioctl(fb, MXCFB_SEND_UPDATE, &update_data);
 
-    DEBUG_LOG("Sent MXCFB_SEND_UPDATE ioctl for region: left=%d, width=%d, top=%d, height=%d",
+    TRACE_LOG("Sent MXCFB_SEND_UPDATE ioctl for region: left=%d, width=%d, top=%d, height=%d",
             update_rect.left, update_rect.width, update_rect.top, update_rect.height);
     return 0;
 }

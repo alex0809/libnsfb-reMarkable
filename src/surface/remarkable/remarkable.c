@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <time.h>
 
 #include "libnsfb.h"
 #include "libnsfb_plot.h"
@@ -24,6 +25,8 @@
 #include "input.h"
 
 #define UNUSED(x) ((x) = (x))
+
+struct timespec millisecond_sleep;
 
 static int rm_defaults(nsfb_t *nsfb)
 {
@@ -72,14 +75,21 @@ static int rm_initialise(nsfb_t *nsfb)
     }
 
     nsfb->ptr = mmap_result;
-
     DEBUG_LOG("Framebuffer mmap successful and assigned to nsfb ptr.");
+    
+    millisecond_sleep.tv_nsec = 1000000;
+    millisecond_sleep.tv_sec = 0;
+
     return 0;
 }
 
 static int
 rm_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
 {
+    UNUSED(nsfb);
+    UNUSED(width);
+    UNUSED(height);
+    UNUSED(format);
     DEBUG_LOG("rm_set_geometry not implemented!");
     return 0;
 }
@@ -96,11 +106,19 @@ static int rm_finalise(nsfb_t *nsfb)
 
 static bool rm_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
-    get_next_event();
+    do {
+        bool event_received = get_next_event(nsfb, event);
+        if (event_received) {
+            return true;
+        }
+        nanosleep(&millisecond_sleep, &millisecond_sleep);
+        timeout--;
+    } while (timeout > 0);
     return false;
 }
 
 static int rm_update(nsfb_t *nsfb, nsfb_bbox_t *box) {
+    UNUSED(nsfb);
     return update_region(box);
 }
 
