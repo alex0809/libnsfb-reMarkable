@@ -18,18 +18,21 @@
 
 #define FRAMEBUFFER_FILE                 "/dev/fb0"
 
-struct screen_info {
+typedef struct fb_info_s {
     int height;
     int width;
     int bpp;
     int linelen;
     int fbsize;
-};
+} fb_info_t;
 
-int fb;
+typedef struct fb_state_s {
+    int fb;
+    int fb_size;
+    fb_info_t scrinfo;
+    void *mapped_fb;
+} fb_state_t;
 
-int load_screen_info(struct screen_info *scrinfo);
-
-int open_fb(void);
-int close_fb(void);
-int update_region(nsfb_bbox_t *box);
+int fb_update_region(fb_state_t *fb_state, nsfb_bbox_t *box);
+int fb_initialize(fb_state_t *fb_state);
+int fb_finalize(fb_state_t *fb_state);

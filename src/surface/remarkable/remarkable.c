@@ -27,26 +27,26 @@
 #define UNUSED(x) ((x) = (x))
 
 struct timespec millisecond_sleep;
+fb_state_t fb_state;
 
 static int rm_defaults(nsfb_t *nsfb)
 {
-    struct screen_info scrinfo;
-    if (load_screen_info(&scrinfo) != 0)
+    if (fb_initialize(&fb_state) != 0)
     {
-        ERROR_LOG("Could not successfully load screen info. Exiting.");
+        ERROR_LOG("rm_defaults: could not successfully initialize framebuffer. Exiting.");
         exit(1);
     }
 
-    nsfb->width = scrinfo.width;
-    nsfb->height = scrinfo.height;
-    nsfb->bpp = scrinfo.bpp;
-    nsfb->linelen = scrinfo.linelen;
+    nsfb->width = fb_state.scrinfo.width;
+    nsfb->height = fb_state.scrinfo.height;
+    nsfb->bpp = fb_state.scrinfo.bpp;
+    nsfb->linelen = fb_state.scrinfo.linelen;
     nsfb->format = NSFB_FMT_RGB565;
 
     /* select default sw plotters for bpp */
     select_plotters(nsfb);
 
-    DEBUG_LOG("Screen defaults set to: width=%d, height=%d, bpp=%d, linelen=%d",
+    DEBUG_LOG("rm_defaults: Screen defaults set to: width=%d, height=%d, bpp=%d, linelen=%d",
             nsfb->width, nsfb->height, nsfb->bpp, nsfb->linelen);
 
     return 0;
@@ -57,25 +57,11 @@ static int rm_initialise(nsfb_t *nsfb)
 {
     if (evdev_open_all() != 0)
     {
-        ERROR_LOG("Could not open evdev devices. Exiting");
+        ERROR_LOG("rm_initialize: could not open evdev devices. Exiting");
         exit(1);
     }
-    struct screen_info scrinfo;
-    if (load_screen_info(&scrinfo) != 0)
-    {
-        ERROR_LOG("Could not successfully load screen info. Exiting.");
-        exit(1);
-    }
-    u_int8_t* mmap_result = mmap(NULL, scrinfo.fbsize, PROT_READ | PROT_WRITE, MAP_SHARED, fb, 0);
-    if (mmap_result == MAP_FAILED)
-    {
-        close_fb();
-        ERROR_LOG("Framebuffer mmap failed. Exiting.\n");
-        exit(1);
-    }
-
-    nsfb->ptr = mmap_result;
-    DEBUG_LOG("Framebuffer mmap successful and assigned to nsfb ptr.");
+    nsfb->ptr = fb_state.mapped_fb;
+    DEBUG_LOG("rm_initialize: framebuffer mmap successful");
     
     millisecond_sleep.tv_nsec = 1000000;
     millisecond_sleep.tv_sec = 0;
@@ -97,8 +83,7 @@ rm_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
 
 static int rm_finalise(nsfb_t *nsfb)
 {
-    free(nsfb->ptr);
-    close_fb();
+    fb_finalize(&fb_state);
     evdev_close_all();
 
     return 0;
@@ -119,7 +104,7 @@ static bool rm_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 
 static int rm_update(nsfb_t *nsfb, nsfb_bbox_t *box) {
     UNUSED(nsfb);
-    return update_region(box);
+    return fb_update_region(&fb_state, box);
 }
 
 const nsfb_surface_rtns_t rm_rtns = {
