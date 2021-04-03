@@ -2,38 +2,33 @@
 #include <stdio.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/param.h>
 #include <linux/fb.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <pthread.h>
 
 #include "screen.h"
 #include "mxcfb.h"
 #include "log.h"
 
-int fb_update_region(fb_state_t *fb_state, nsfb_bbox_t *box)
-{
-    struct mxcfb_update_data update_data;
-    struct mxcfb_rect update_rect;
-    update_rect.left = box->x0;
-    update_rect.width = (box->x1 - box->x0);
-    update_rect.top = box->y0;
-    update_rect.height = (box->y1 - box->y0);
-
-    update_data.update_region = update_rect;
-    update_data.waveform_mode = DEFAULT_WAVEFORM_MODE;
-    update_data.update_mode = UPDATE_MODE_PARTIAL;
-    update_data.update_marker = 0;
-    update_data.dither_mode = DEFAULT_EPDC_FLAG;
-    update_data.temp = DEFAULT_TEMP;
-    update_data.flags = 0;
-
-    if (ioctl(fb_state->fb, MXCFB_SEND_UPDATE, &update_data) == -1) {
-        ERROR_LOG("fb_update_region: error executing MXCFB_SEND_UPDATE!");
+int fb_claim_region(fb_state_t *fb_state, nsfb_bbox_t *box) {
+    if (pthread_mutex_lock(&fb_state->fb_mutex) != 0) {
+        ERROR_LOG("fb_claim_region: Could not lock update mutex.");
         return -1;
     }
+    return 0;
+}
 
-    TRACE_LOG("fb_update_region: Sent MXCFB_SEND_UPDATE ioctl for region: left=%d, width=%d, top=%d, height=%d",
-            update_rect.left, update_rect.width, update_rect.top, update_rect.height);
+int fb_update_region(fb_state_t *fb_state, nsfb_bbox_t *box)
+{
+    fb_state->next_update_x0 = MIN(fb_state->next_update_x0, box->x0);
+    fb_state->next_update_x1 = MAX(fb_state->next_update_x1, box->x1);
+    fb_state->next_update_y0 = MIN(fb_state->next_update_y0, box->y0);
+    fb_state->next_update_y1 = MAX(fb_state->next_update_y1, box->y1);
+    if (pthread_mutex_unlock(&fb_state->fb_mutex) != 0) {
+        ERROR_LOG("fb_update_region: could not unlock update mutex.");
+    }
     return 0;
 }
 
@@ -76,6 +71,63 @@ int fb_initialize(fb_state_t *fb_state)
 
     DEBUG_LOG("fb_initialize: mmapped %d bytes of framebuffer", fb_state->fb_size);
 
+    pthread_t thread;
+    int thread_create_result = pthread_create(&thread, NULL, fb_async_redraw, fb_state);
+    if (thread_create_result != 0) {
+        ERROR_LOG("fb_initialize: could not initialize async update thread");
+        return -1;
+    }
+    fb_state->redraw_active = true;
+    fb_state->redraw_thread = thread;
+    pthread_mutex_t fb_mutex = PTHREAD_MUTEX_INITIALIZER;
+    fb_state->fb_mutex = fb_mutex;
+
+    return 0;
+}
+
+void *fb_async_redraw(void *context) 
+{
+    struct timespec millisecond_sleep;
+    millisecond_sleep.tv_nsec = 200000000;
+    millisecond_sleep.tv_sec = 0;
+
+    fb_state_t *state = (fb_state_t*)context;
+    while (state->redraw_active) {
+        if (pthread_mutex_lock(&state->fb_mutex) != 0) {
+            ERROR_LOG("fb_async_redraw: Redrawing thread could not lock mutex.");
+        }
+
+        if (state->next_update_x1 != 0 && state->next_update_y1 != 0) {
+            struct mxcfb_update_data update_data;
+            struct mxcfb_rect update_rect;
+            update_rect.left = state->next_update_x0;
+            update_rect.width = (state->next_update_x1 - state->next_update_x0);
+            update_rect.top = state->next_update_y0;
+            update_rect.height = (state->next_update_y1 - state->next_update_y0);
+    
+            update_data.update_region = update_rect;
+            update_data.waveform_mode = DEFAULT_WAVEFORM_MODE;
+            update_data.update_mode = UPDATE_MODE_PARTIAL;
+            update_data.update_marker = 0;
+            update_data.dither_mode = DEFAULT_EPDC_FLAG;
+            update_data.temp = DEFAULT_TEMP;
+            update_data.flags = 0;
+    
+            if (ioctl(state->fb, MXCFB_SEND_UPDATE, &update_data) == -1) {
+                ERROR_LOG("fb_async_redraw: error executing MXCFB_SEND_UPDATE!");
+            }
+            TRACE_LOG("fb_async_redraw: Sent MXCFB_SEND_UPDATE ioctl for region: left=%d, width=%d, top=%d, height=%d",
+                update_rect.left, update_rect.width, update_rect.top, update_rect.height);
+
+            state->next_update_x0 = 0;
+            state->next_update_x1 = 0;
+            state->next_update_y0 = 0;
+            state->next_update_y1 = 0;
+        }
+
+        pthread_mutex_unlock(&state->fb_mutex);
+        nanosleep(&millisecond_sleep, &millisecond_sleep);
+    }
     return 0;
 }
 
@@ -88,6 +140,10 @@ int fb_finalize(fb_state_t *fb_state) {
         DEBUG_LOG("fb_finalize: could not munmap");
         return -1;
     }
+    fb_state->redraw_active = false;
+    DEBUG_LOG("Waiting for redraw thread to exit");
+    pthread_join(fb_state->redraw_thread, NULL);
+    DEBUG_LOG("Redraw thread exited");
     return 0;
 }
 

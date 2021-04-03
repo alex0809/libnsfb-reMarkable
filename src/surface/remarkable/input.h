@@ -4,29 +4,13 @@
 #include "libnsfb.h"
 #include "ringbuf.h"
 
-struct TouchEvent {
-    enum { DOWN, UP } type;
-};
+#define EVENTS_DIR "/dev/input"
 
-/// Locations of the input devices
-struct InputDevices {
-    enum { RM1, RM2 } model;
-    char* touch;
-    char* pen;
-    char* gpio;
-};
+#define RM1_MACHINE_NAME_1  "reMarkable 1.0"
+#define RM1_MACHINE_NAME_2  "reMarkable Prototype 1"
+#define RM2_MACHINE_NAME    "reMarkable 2.0"
 
-struct MultitouchState {
-    int min_x;
-    int max_x;
-    int min_y;
-    int max_y;
-
-    int current_slot;
-    struct MultitouchSlotState *slots;
-};
-
-struct MultitouchSlotState {
+typedef struct input_single_state_s {
     int tracking_id;
     bool tracking_id_changed;
 
@@ -42,19 +26,60 @@ struct MultitouchSlotState {
     int touch_minor;
     int width_major;
     int width_minor;
+} input_single_state_t;
 
-    int tool_type;
-    int tool_x;
-    int tool_y;
-};
+typedef struct input_pen_state_s {
+    int min_x;
+    int max_x;
+    int min_y;
+    int max_y;
 
-bool get_next_event(nsfb_t *nsfb, nsfb_event_t *event);
-int get_next_multitouch_event(nsfb_t *nsfb, ring_buf_t *buf);
-int get_next_gpio_event(nsfb_t *nsfb, ring_buf_t *buf);
-int get_next_pen_event(nsfb_t *nsfb, ring_buf_t *buf);
-int read_next_event(struct input_event *ev, struct libevdev *dev);
+    int distance;
+    int pressure;
 
-int identify_input_devices(struct InputDevices *devices);
-int evdev_open_all(void);
-int evdev_close_all(void);
-int evdev_single_device_open(char *path, struct libevdev **dev);
+    // Note that these positions are already translated to screen coordinates!
+    int position_x;
+    int position_y;
+    int previous_position_x;
+    int previous_position_y;
+
+    bool touched;
+    bool touch_state_changed;
+} input_pen_state_t;
+
+typedef struct input_multitouch_state_s {
+    int min_x;
+    int max_x;
+    int min_y;
+    int max_y;
+
+    int current_slot;
+
+    // a crude way to handle multitouch: disregard all slots after first
+    int first_pressed_slot;
+
+    input_single_state_t *slots;
+} input_multitouch_state_t;
+
+typedef struct input_state_s {
+    enum { RM1, RM2 } model;
+
+    struct libevdev *pen_dev;
+    struct libevdev *gpio_dev;
+    struct libevdev *touch_dev;
+
+    ring_buf_t events_buf;
+    input_multitouch_state_t multitouch_state;
+    input_pen_state_t pen_state;
+} input_state_t;
+
+int input_initialize(input_state_t *input_state);
+int input_finalize(input_state_t *input_state);
+bool input_get_next_event(input_state_t *input_state, nsfb_t *nsfb, nsfb_event_t *event);
+
+int input_get_next_multitouch_event(input_state_t *input_state, nsfb_t *nsfb);
+int input_get_next_gpio_event(input_state_t *input_state, nsfb_t *nsfb);
+int input_get_next_pen_event(input_state_t *input_state, nsfb_t *nsfb);
+int input_identify_input_devices(input_state_t *input_state);
+int input_read_next_event(struct input_event *ev, struct libevdev *dev);
+int input_evdev_single_device_open(char *path, struct libevdev **dev);

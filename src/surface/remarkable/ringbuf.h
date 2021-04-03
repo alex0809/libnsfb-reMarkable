@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-typedef struct {
+typedef struct ring_buf_s {
     void *head;
     void *tail;
     size_t capacity;
