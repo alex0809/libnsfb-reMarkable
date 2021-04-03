@@ -1,5 +1,7 @@
 #include <libevdev/libevdev.h>
 #include <stdbool.h>
+#include <pthread.h>
+#include <semaphore.h>
 
 #include "libnsfb.h"
 #include "ringbuf.h"
@@ -14,6 +16,7 @@ typedef struct input_single_state_s {
     int tracking_id;
     bool tracking_id_changed;
 
+    // these positions are already translated to screen coordinates
     int position_x;
     int position_y;
     bool position_changed;
@@ -37,11 +40,10 @@ typedef struct input_pen_state_s {
     int distance;
     int pressure;
 
-    // Note that these positions are already translated to screen coordinates!
+    // these positions are already translated to screen coordinates
     int position_x;
     int position_y;
-    int previous_position_x;
-    int previous_position_y;
+    bool position_changed;
 
     bool touched;
     bool touch_state_changed;
@@ -71,15 +73,29 @@ typedef struct input_state_s {
     ring_buf_t events_buf;
     input_multitouch_state_t multitouch_state;
     input_pen_state_t pen_state;
+
+    bool poll_active;
+    sem_t event_requested;
+    pthread_t poll_thread;
+
+    int screen_width;
+    int screen_height;
 } input_state_t;
 
-int input_initialize(input_state_t *input_state);
+int input_initialize(input_state_t *input_state, nsfb_t *nsfb);
 int input_finalize(input_state_t *input_state);
 bool input_get_next_event(input_state_t *input_state, nsfb_t *nsfb, nsfb_event_t *event);
 
-int input_get_next_multitouch_event(input_state_t *input_state, nsfb_t *nsfb);
-int input_get_next_gpio_event(input_state_t *input_state, nsfb_t *nsfb);
-int input_get_next_pen_event(input_state_t *input_state, nsfb_t *nsfb);
+int input_get_next_multitouch_event(input_state_t *input_state);
+int input_get_next_gpio_event(input_state_t *input_state);
+int input_get_next_pen_event(input_state_t *input_state);
 int input_identify_input_devices(input_state_t *input_state);
 int input_read_next_event(struct input_event *ev, struct libevdev *dev);
 int input_evdev_single_device_open(char *path, struct libevdev **dev);
+
+/// Push updated touch position into buffer, if it has changed
+int input_push_new_touch_position(input_state_t *input_state);
+/// Push updated pen position into buffer, if it has changed
+int input_push_new_pen_position(input_state_t *input_state);
+
+void *input_async_handler(void *context);

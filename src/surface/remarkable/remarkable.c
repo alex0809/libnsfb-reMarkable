@@ -56,15 +56,12 @@ static int rm_defaults(nsfb_t *nsfb)
 
 static int rm_initialise(nsfb_t *nsfb)
 {
-    if (input_initialize(&input_state) != 0)
+    if (input_initialize(&input_state, nsfb) != 0)
     {
         ERROR_LOG("rm_initialize: could not initialize input devices. Exiting");
         exit(1);
     }
     nsfb->ptr = fb_state.mapped_fb;
-
-    millisecond_sleep.tv_nsec = 1000000;
-    millisecond_sleep.tv_sec = 0;
 
     return 0;
 }
@@ -76,13 +73,14 @@ rm_set_geometry(nsfb_t *nsfb, int width, int height, enum nsfb_format_e format)
     UNUSED(width);
     UNUSED(height);
     UNUSED(format);
-    DEBUG_LOG("rm_set_geometry not implemented!");
+    DEBUG_LOG("rm_set_geometry: not implemented!");
     return 0;
 }
 
 
 static int rm_finalise(nsfb_t *nsfb)
 {
+    UNUSED(nsfb);
     fb_finalize(&fb_state);
     input_finalize(&input_state);
 

@@ -13,26 +13,46 @@
 #include <string.h>
 #include <limits.h>
 #include <unistd.h>
+#include <pthread.h>
+#include <semaphore.h>
 
 #include "log.h"
 #include "input.h"
 #include "libnsfb_event.h"
 #include "nsfb.h"
 
+struct timespec poll_sleep;
 
 bool input_get_next_event(input_state_t *input_state, nsfb_t *nsfb, nsfb_event_t *event)
 {
-    if (ring_buf_read(&input_state->events_buf, event)) {
-        return true;
-    }
-
-    while (input_get_next_multitouch_event(input_state, nsfb) > 0);
-    while (input_get_next_gpio_event(input_state, nsfb) > 0);
-    while (input_get_next_pen_event(input_state, nsfb) > 0);
-    return false;
+    // Value will probably only be available on next call of this function - that's fine
+    sem_post(&input_state->event_requested);
+    return ring_buf_read(&input_state->events_buf, event);
 }
 
-int input_get_next_multitouch_event(input_state_t *input_state, nsfb_t *nsfb)
+void *input_async_handler(void *context)
+{
+    input_state_t *input_state = (input_state_t*)context;
+    while (input_state->poll_active) {
+        while (input_get_next_multitouch_event(input_state) > 0);
+        while (input_get_next_gpio_event(input_state) > 0);
+        while (input_get_next_pen_event(input_state) > 0);
+
+        int val;
+        sem_getvalue(&input_state->event_requested, &val);
+        if (val > 0) {
+            input_push_new_touch_position(input_state);
+            input_push_new_pen_position(input_state);
+            sem_wait(&input_state->event_requested);
+        }
+
+        nanosleep(&poll_sleep, &poll_sleep);
+    }
+
+    return 0;
+}
+
+int input_get_next_multitouch_event(input_state_t *input_state)
 {
     struct input_event ev;
     int read_res = input_read_next_event(&ev, input_state->touch_dev);
@@ -65,16 +85,40 @@ int input_get_next_multitouch_event(input_state_t *input_state, nsfb_t *nsfb)
                     input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].orientation = ev.value;
                     break;
                 case ABS_MT_POSITION_X:
-                    input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_x = ev.value;
+                    ;
+                    int translated_x = input_state->screen_width - (ev.value * input_state->screen_width / input_state->multitouch_state.max_x);
+                    if (input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_x == translated_x) {
+                        break;
+                    }
+
+                    input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_x = translated_x;
                     input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_changed = true;
                     break;
                 case ABS_MT_POSITION_Y:
-                    input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_y = ev.value;
+                    ;
+                    int translated_y = (ev.value * input_state->screen_height / input_state->multitouch_state.max_y);
+                    // invert y-axis only on RM1
+                    if (input_state->model == RM1) {
+                        translated_y = input_state->screen_height - translated_y;
+                    }
+                    if (input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_y == translated_y) {
+                        break;
+                    }
+
+                    input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_y = translated_y;
                     input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_changed = true;
                     break;
                 case ABS_MT_TRACKING_ID:
                     input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].tracking_id = ev.value;
                     input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].tracking_id_changed = true;
+
+                    // Set/reset the first pressed slot - all others will be effectively ignored
+                    if (input_state->multitouch_state.first_pressed_slot == -1 && ev.value != -1) {
+                        input_state->multitouch_state.first_pressed_slot = input_state->multitouch_state.current_slot;
+                    }
+                    if (input_state->multitouch_state.first_pressed_slot != input_state->multitouch_state.current_slot && ev.value == -1) {
+                        input_state->multitouch_state.first_pressed_slot = -1;
+                    }
                     break;
                 case ABS_MT_SLOT:
                     input_state->multitouch_state.current_slot = ev.value;
@@ -89,60 +133,43 @@ int input_get_next_multitouch_event(input_state_t *input_state, nsfb_t *nsfb)
                 case SYN_REPORT:
                     // TODO do I have to spell it out?
                     if (input_state->multitouch_state.first_pressed_slot != -1 && input_state->multitouch_state.current_slot != input_state->multitouch_state.first_pressed_slot) {
-                        TRACE_LOG("input_get_next_multitouch_event: Disregarding multitouch slot %d, I only care about first pressed slot %d", 
+                        DEBUG_LOG("input_get_next_multitouch_event: Disregarding multitouch slot %d, I only care about first pressed slot %d", 
                                 input_state->multitouch_state.current_slot, input_state->multitouch_state.first_pressed_slot);
                         break;
                     }
 
-                    // On SYN:
-                    // 1. If tracking_id has been released before the SYN, send corresponding event, then
-                    // 2. If position has changed, send coresponding event, then
-                    // 3. If tracking_id has been added before the SYN, send corresponding event
-                    ;
-                    input_single_state_t current_slot = input_state->multitouch_state.slots[input_state->multitouch_state.current_slot];
+                    input_single_state_t *current_slot = &input_state->multitouch_state.slots[input_state->multitouch_state.current_slot];
 
-                    if (current_slot.tracking_id_changed && current_slot.tracking_id == -1) {
+                    // If the touch state of the first pressed slot has changed, push the updates immediately to buffer
+                    // Otherwise, don't send new x/y coordinates here, we only do that if asked nicely for it
+
+                    // On touch up, first transmit key up and then new position
+                    if (current_slot->tracking_id_changed && current_slot->tracking_id == -1) {
                         input_state->multitouch_state.first_pressed_slot = -1;
                         nsfb_event_t up_event;
-                        current_slot.tracking_id_changed = false;
+                        current_slot->tracking_id_changed = false;
                         up_event.type = NSFB_EVENT_KEY_UP;
                         up_event.value.keycode = NSFB_KEY_MOUSE_1;
                         ring_buf_write(&input_state->events_buf, &up_event);
-                        TRACE_LOG("input_get_next_multitouch_event: Sending mouse up event (from touch)");
+                        TRACE_LOG("input_get_next_multitouch_event: Sent mouse up event (from touch)");
+
+                        input_push_new_touch_position(input_state);
                     }
 
-                    if (current_slot.position_changed) {
-                        nsfb_event_t position_event;
-                        current_slot.position_changed = false;
-                        // TODO this is not the correct way to calculate the corresponding coordinates,
-                        // because visible width/height may be smaller than the full screen.
-                        int translated_x = nsfb->width - (input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_x * 
-                                nsfb->width / input_state->multitouch_state.max_x);
-                        int translated_y = (input_state->multitouch_state.slots[input_state->multitouch_state.current_slot].position_y *
-                                nsfb->height / input_state->multitouch_state.max_y);
-                        // invert y-axis only on RM1
-                        if (input_state->model == RM1) {
-                            translated_y = nsfb->height - translated_y;
-                        }
+                    // On touch down, first transmit new position and then key down
+                    if (current_slot->tracking_id_changed) {
+                        input_push_new_touch_position(input_state);
 
-                        position_event.type = NSFB_EVENT_MOVE_ABSOLUTE;
-                        position_event.value.vector.x = translated_x;
-                        position_event.value.vector.y = translated_y;
-                        TRACE_LOG("input_get_next_multitouch_event: Updating touch position: x=%d, y=%d", translated_x, translated_y);
-                        ring_buf_write(&input_state->events_buf, &position_event);
-                    }
-
-                    if (current_slot.tracking_id_changed) {
                         input_state->multitouch_state.first_pressed_slot = input_state->multitouch_state.current_slot;
                         nsfb_event_t down_event;
-                        current_slot.tracking_id_changed = false;
+                        current_slot->tracking_id_changed = false;
                         down_event.type = NSFB_EVENT_KEY_DOWN;
                         down_event.value.keycode = NSFB_KEY_MOUSE_1;
-                        TRACE_LOG("input_get_next_multitouch_event: Sending mouse down event (from touch)");
                         ring_buf_write(&input_state->events_buf, &down_event);
+                        TRACE_LOG("input_get_next_multitouch_event: Sent mouse down event (from touch)");
                     }
 
-                    return 1;
+                    break;
                 case SYN_DROPPED:
                     // TODO recover from dropped event
                     DEBUG_LOG("input_get_next_multitouch_event: Events were dropped! State is now probably invalid.");
@@ -156,10 +183,29 @@ int input_get_next_multitouch_event(input_state_t *input_state, nsfb_t *nsfb)
             ERROR_LOG("input_get_next_multitouch_event: received unexpected event type %s", libevdev_event_type_get_name(ev.type));
             return -1;
     }
-    return 0;
+    return 1;
 }
 
-int input_get_next_gpio_event(input_state_t *input_state, nsfb_t *nsfb)
+int input_push_new_touch_position(input_state_t *input_state)
+{
+    if (input_state->multitouch_state.first_pressed_slot == -1 ||
+            !input_state->multitouch_state.slots[input_state->multitouch_state.first_pressed_slot].position_changed) {
+        return 0;
+    }
+    
+    nsfb_event_t position_event;
+    input_single_state_t *single_state = &input_state->multitouch_state.slots[input_state->multitouch_state.first_pressed_slot];
+    single_state->position_changed = false;
+
+    position_event.type = NSFB_EVENT_MOVE_ABSOLUTE;
+    position_event.value.vector.x = single_state->position_x;
+    position_event.value.vector.y = single_state->position_y;
+    TRACE_LOG("input_push_new_touch_position: Updating touch position: x=%d, y=%d", single_state->position_x, single_state->position_y);
+    ring_buf_write(&input_state->events_buf, &position_event);
+    return 1;
+}
+
+int input_get_next_gpio_event(input_state_t *input_state)
 {
     struct input_event ev;
     int read_res = input_read_next_event(&ev, input_state->gpio_dev);
@@ -167,11 +213,62 @@ int input_get_next_gpio_event(input_state_t *input_state, nsfb_t *nsfb)
         return read_res;
     }
 
-    DEBUG_LOG("GPIO event unhandled!");
+    switch (ev.type) {
+        case EV_KEY:
+            switch (ev.code) {
+                case KEY_LEFT:
+                    ;
+                    nsfb_event_t left_event;
+                    if (ev.value == 0) {
+                        left_event.type = NSFB_EVENT_KEY_UP;
+                    } else {
+                        left_event.type = NSFB_EVENT_KEY_DOWN;
+                    }
+                    left_event.value.keycode = NSFB_KEY_PAGEUP;
+                    ring_buf_write(&input_state->events_buf, &left_event);
+                    TRACE_LOG("input_get_next_gpio_event: Sent gpio pgup event");
+                    break;
+                case KEY_HOME:
+                    ;
+                    nsfb_event_t home_event;
+                    if (ev.value == 0) {
+                        home_event.type = NSFB_EVENT_KEY_UP;
+                    } else {
+                        home_event.type = NSFB_EVENT_KEY_DOWN;
+                    }
+                    home_event.value.keycode = NSFB_KEY_HOME;
+                    ring_buf_write(&input_state->events_buf, &home_event);
+                    TRACE_LOG("input_get_next_gpio_event: Sent gpio home event");
+                    break;
+                case KEY_RIGHT:
+                    ;
+                    nsfb_event_t right_event;
+                    if (ev.value == 0) {
+                        right_event.type = NSFB_EVENT_KEY_UP;
+                    } else {
+                        right_event.type = NSFB_EVENT_KEY_DOWN;
+                    }
+                    right_event.value.keycode = NSFB_KEY_PAGEDOWN;
+                    ring_buf_write(&input_state->events_buf, &right_event);
+                    TRACE_LOG("input_get_next_gpio_event: Sent gpio pgdown event");
+                    break;
+                default:
+                    ERROR_LOG("input_get_next_multitouch_event: Unhandled ev.code %s for KEY event", libevdev_event_code_get_name(ev.type, ev.code));
+                    return -1;
+            }
+            break;
+        case EV_SYN:
+            // let's just handle it directly on EV_KEY for now
+            break;
+        default:
+            ERROR_LOG("input_get_next_gpio_event: received unexpected event type %s", libevdev_event_type_get_name(ev.type));
+            return -1;
+    }
+
     return 0;
 }
 
-int input_get_next_pen_event(input_state_t *input_state, nsfb_t *nsfb)
+int input_get_next_pen_event(input_state_t *input_state)
 {
     struct input_event ev;
     int read_res = input_read_next_event(&ev, input_state->pen_dev);
@@ -187,13 +284,23 @@ int input_get_next_pen_event(input_state_t *input_state, nsfb_t *nsfb)
                     break;
                 case ABS_X:
                     ;
-                    int translated_y = nsfb->height - (ev.value * nsfb->height / input_state->pen_state.max_x);
+                    int translated_y = input_state->screen_height - (ev.value * input_state->screen_height / input_state->pen_state.max_x);
+                    if (input_state->pen_state.position_y == translated_y) {
+                        break;
+                    }
+
                     input_state->pen_state.position_y = translated_y;
+                    input_state->pen_state.position_changed = true;
                     break;
                 case ABS_Y:
                     ;
-                    int translated_x = (ev.value * nsfb->width / input_state->pen_state.max_y);
+                    int translated_x = (ev.value * input_state->screen_width / input_state->pen_state.max_y);
+                    if (input_state->pen_state.position_x == translated_x) {
+                        break;
+                    }
+
                     input_state->pen_state.position_x = translated_x;
+                    input_state->pen_state.position_changed = true;
                     break;
                 case ABS_PRESSURE:
                     input_state->pen_state.pressure = ev.value;
@@ -229,37 +336,32 @@ int input_get_next_pen_event(input_state_t *input_state, nsfb_t *nsfb)
         case EV_SYN:
             switch (ev.code) {
                 case SYN_REPORT:
+                    // If the touch state of the pen has changed, push the updates immediately to buffer
+                    // Otherwise, don't send new x/y coordinates here, we only do that if asked nicely for it
+
+                    // On touch up, first transmit key up and then new position
                     if (input_state->pen_state.touch_state_changed && !input_state->pen_state.touched) {
                         nsfb_event_t up_event;
                         input_state->pen_state.touch_state_changed = false;
                         up_event.type = NSFB_EVENT_KEY_UP;
                         up_event.value.keycode = NSFB_KEY_MOUSE_1;
                         ring_buf_write(&input_state->events_buf, &up_event);
-                        TRACE_LOG("input_get_next_pen_event: Sending mouse up event (from pen touch)");
+                        TRACE_LOG("input_get_next_pen_event: Sent mouse up event (from pen touch)");
+
+                        input_push_new_pen_position(input_state);
                     }
 
-                    if (input_state->pen_state.position_x != input_state->pen_state.previous_position_x ||
-                            input_state->pen_state.position_y != input_state->pen_state.previous_position_y) {
-                        nsfb_event_t position_event;
-                        input_state->pen_state.previous_position_x = input_state->pen_state.position_x;
-                        input_state->pen_state.previous_position_y = input_state->pen_state.position_y;
-
-                        position_event.type = NSFB_EVENT_MOVE_ABSOLUTE;
-                        position_event.value.vector.x = input_state->pen_state.position_x;
-                        position_event.value.vector.y = input_state->pen_state.position_y;
-                        TRACE_LOG("input_get_next_pen_event: Updating touch position: x=%d, y=%d", 
-                                input_state->pen_state.position_x, input_state->pen_state.position_y);
-                        ring_buf_write(&input_state->events_buf, &position_event);
-                    }
-
+                    // On touch down, first transmit new position and then key down
                     if (input_state->pen_state.touch_state_changed) {
+                        input_push_new_pen_position(input_state);
+
                         input_state->multitouch_state.first_pressed_slot = input_state->multitouch_state.current_slot;
                         nsfb_event_t down_event;
                         input_state->pen_state.touch_state_changed = false;
                         down_event.type = NSFB_EVENT_KEY_DOWN;
                         down_event.value.keycode = NSFB_KEY_MOUSE_1;
-                        TRACE_LOG("input_get_next_pen_event: Sending mouse down event (from pen touch)");
                         ring_buf_write(&input_state->events_buf, &down_event);
+                        TRACE_LOG("input_get_next_pen_event: Sending mouse down event (from pen touch)");
                     }
                     break;
                 case SYN_DROPPED:
@@ -275,8 +377,27 @@ int input_get_next_pen_event(input_state_t *input_state, nsfb_t *nsfb)
             ERROR_LOG("input_get_next_pen_event: received unexpected event type %s", libevdev_event_type_get_name(ev.type));
             return -1;
         }
-    return 0;
+    return 1;
 }
+
+int input_push_new_pen_position(input_state_t *input_state)
+{
+    if (!input_state->pen_state.position_changed) {
+        return 0;
+    }
+
+    input_state->pen_state.position_changed = false;
+
+    nsfb_event_t position_event;
+    position_event.type = NSFB_EVENT_MOVE_ABSOLUTE;
+    position_event.value.vector.x = input_state->pen_state.position_x;
+    position_event.value.vector.y = input_state->pen_state.position_y;
+    TRACE_LOG("input_get_next_pen_event: Updating touch position: x=%d, y=%d", 
+            input_state->pen_state.position_x, input_state->pen_state.position_y);
+    ring_buf_write(&input_state->events_buf, &position_event);
+    return 1;
+}
+
 
 int input_read_next_event(struct input_event *ev, struct libevdev *dev)
 {
@@ -291,7 +412,7 @@ int input_read_next_event(struct input_event *ev, struct libevdev *dev)
     return 1;
 }
 
-int input_initialize(input_state_t *input_state)
+int input_initialize(input_state_t *input_state, nsfb_t *nsfb)
 {
     if (input_identify_input_devices(input_state) != 0) {
         ERROR_LOG("input_initialize: Could not determine input device locations.");
@@ -333,6 +454,24 @@ int input_initialize(input_state_t *input_state)
     // initialize ringbuffer for events
     ring_buf_init(&input_state->events_buf, 50, sizeof(nsfb_event_t));
 
+    // set width/height (assume these are unchanging for now)
+    input_state->screen_height = nsfb->height;
+    input_state->screen_width = nsfb->width;
+
+    poll_sleep.tv_nsec = 10000000;
+    poll_sleep.tv_sec = 0;
+    input_state->poll_active = true;
+    sem_t sem;
+    sem_init(&sem, 0, 0);
+    input_state->event_requested = sem;
+    pthread_t thread;
+    int thread_create_result = pthread_create(&thread, NULL, input_async_handler, input_state);
+    if (thread_create_result != 0) {
+        ERROR_LOG("input_initialize: could not initialize async poll thread");
+        return -1;
+    }
+    input_state->poll_thread = thread;
+
     return 0;
 }
 
@@ -346,6 +485,10 @@ int input_finalize(input_state_t *input_state)
     libevdev_free(input_state->touch_dev);
     ring_buf_free(&input_state->events_buf);
     DEBUG_LOG("input_finalize: All evdev devices and the event buffer were closed");
+
+    input_state->poll_active = false;
+    pthread_join(input_state->poll_thread, NULL);
+    DEBUG_LOG("input_finalize: Poll thread stopped");
 
     return 0;
 }
