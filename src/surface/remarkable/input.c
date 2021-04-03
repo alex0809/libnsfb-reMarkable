@@ -247,7 +247,7 @@ int input_get_next_pen_event(input_state_t *input_state, nsfb_t *nsfb)
                         position_event.type = NSFB_EVENT_MOVE_ABSOLUTE;
                         position_event.value.vector.x = input_state->pen_state.position_x;
                         position_event.value.vector.y = input_state->pen_state.position_y;
-                        DEBUG_LOG("input_get_next_pen_event: Updating touch position: x=%d, y=%d", 
+                        TRACE_LOG("input_get_next_pen_event: Updating touch position: x=%d, y=%d", 
                                 input_state->pen_state.position_x, input_state->pen_state.position_y);
                         ring_buf_write(&input_state->events_buf, &position_event);
                     }
