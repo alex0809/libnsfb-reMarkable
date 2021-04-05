@@ -1,3 +1,5 @@
+#define _GNU_SOURCE // required for naming threads
+
 #include <stdlib.h>
 #include <libevdev/libevdev.h>
 #include <libevdev/libevdev-uinput.h>
@@ -23,11 +25,18 @@
 
 struct timespec poll_sleep;
 
-bool input_get_next_event(input_state_t *input_state, nsfb_t *nsfb, nsfb_event_t *event)
+bool input_get_next_event(input_state_t *input_state, nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
-    // Value will probably only be available on next call of this function - that's fine
-    sem_post(&input_state->event_requested);
-    return ring_buf_read(&input_state->events_buf, event);
+    input_state->events_requested = true;
+
+    struct timespec wait_timeout;
+    clock_gettime(CLOCK_REALTIME, &wait_timeout);
+    wait_timeout.tv_nsec += (timeout % 1000) * 1000000;
+    wait_timeout.tv_sec += timeout / 1000;
+    wait_timeout.tv_sec += wait_timeout.tv_nsec / 1000000000;
+    wait_timeout.tv_nsec %= 1000000000;
+
+    return ring_buf_wait(&input_state->events_buf, event, &wait_timeout);
 }
 
 void *input_async_handler(void *context)
@@ -38,12 +47,10 @@ void *input_async_handler(void *context)
         while (input_get_next_gpio_event(input_state) > 0);
         while (input_get_next_pen_event(input_state) > 0);
 
-        int val;
-        sem_getvalue(&input_state->event_requested, &val);
-        if (val > 0) {
-            input_push_new_touch_position(input_state);
-            input_push_new_pen_position(input_state);
-            sem_wait(&input_state->event_requested);
+        if (input_state->events_requested) {
+            if (input_push_new_touch_position(input_state) | input_push_new_pen_position(input_state)) {
+                input_state->events_requested = false;
+            }
         }
 
         nanosleep(&poll_sleep, &poll_sleep);
@@ -461,11 +468,10 @@ int input_initialize(input_state_t *input_state, nsfb_t *nsfb)
     poll_sleep.tv_nsec = 10000000;
     poll_sleep.tv_sec = 0;
     input_state->poll_active = true;
-    sem_t sem;
-    sem_init(&sem, 0, 0);
-    input_state->event_requested = sem;
+
     pthread_t thread;
     int thread_create_result = pthread_create(&thread, NULL, input_async_handler, input_state);
+    pthread_setname_np(thread, "input");
     if (thread_create_result != 0) {
         ERROR_LOG("input_initialize: could not initialize async poll thread");
         return -1;

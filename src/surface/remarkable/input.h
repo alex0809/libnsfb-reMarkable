@@ -1,7 +1,6 @@
 #include <libevdev/libevdev.h>
 #include <stdbool.h>
 #include <pthread.h>
-#include <semaphore.h>
 
 #include "libnsfb.h"
 #include "ringbuf.h"
@@ -75,7 +74,7 @@ typedef struct input_state_s {
     input_pen_state_t pen_state;
 
     bool poll_active;
-    sem_t event_requested;
+    bool events_requested;
     pthread_t poll_thread;
 
     int screen_width;
@@ -84,7 +83,7 @@ typedef struct input_state_s {
 
 int input_initialize(input_state_t *input_state, nsfb_t *nsfb);
 int input_finalize(input_state_t *input_state);
-bool input_get_next_event(input_state_t *input_state, nsfb_t *nsfb, nsfb_event_t *event);
+bool input_get_next_event(input_state_t *input_state, nsfb_t *nsfb, nsfb_event_t *event, int timeout);
 
 int input_get_next_multitouch_event(input_state_t *input_state);
 int input_get_next_gpio_event(input_state_t *input_state);

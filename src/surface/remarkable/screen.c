@@ -1,3 +1,5 @@
+#define _GNU_SOURCE // required for naming threads
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
@@ -12,7 +14,10 @@
 #include "mxcfb.h"
 #include "log.h"
 
+#define UNUSED(x) ((x) = (x))
+
 int fb_claim_region(fb_state_t *fb_state, nsfb_bbox_t *box) {
+    UNUSED(box);
     if (pthread_mutex_lock(&fb_state->fb_mutex) != 0) {
         ERROR_LOG("fb_claim_region: Could not lock update mutex.");
         return -1;
@@ -22,6 +27,7 @@ int fb_claim_region(fb_state_t *fb_state, nsfb_bbox_t *box) {
 
 int fb_update_region(fb_state_t *fb_state, nsfb_bbox_t *box)
 {
+    UNUSED(box);
     fb_state->next_update_x0 = MIN(fb_state->next_update_x0, box->x0);
     fb_state->next_update_x1 = MAX(fb_state->next_update_x1, box->x1);
     fb_state->next_update_y0 = MIN(fb_state->next_update_y0, box->y0);
@@ -73,6 +79,7 @@ int fb_initialize(fb_state_t *fb_state)
 
     pthread_t thread;
     int thread_create_result = pthread_create(&thread, NULL, fb_async_redraw, fb_state);
+    pthread_setname_np(thread, "screen");
     if (thread_create_result != 0) {
         ERROR_LOG("fb_initialize: could not initialize async update thread");
         return -1;

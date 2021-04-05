@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <semaphore.h>
+#include <time.h>
+#include <errno.h>
 
 #include "ringbuf.h"
 #include "log.h"
@@ -11,9 +14,12 @@ void ring_buf_init(ring_buf_t *buf, size_t capacity, size_t elem_size)
     buf->buffer_end = (char *)buf->buffer + capacity * elem_size;
     buf->capacity = capacity;
     buf->elem_size = elem_size;
-    buf->count = 0;
     buf->head = buf->buffer;
     buf->tail = buf->buffer;
+
+    sem_t sem_count;
+    sem_init(&sem_count, 0, 0);
+    buf->count = sem_count;
 }
 
 void ring_buf_free(ring_buf_t *buf)
@@ -32,20 +38,25 @@ bool ring_buf_write(ring_buf_t *buf, void* item) {
     if (buf->head == buf->buffer_end) {
         buf->head = buf->buffer;
     }
-    buf->count++;
+    sem_post(&buf->count);
     return true;
 }
 
-bool ring_buf_read(ring_buf_t *buf, void *item) {
-    if (buf->count == 0) {
+bool ring_buf_wait(ring_buf_t *buf, void *item, struct timespec *timeout) {
+    int sem_result;
+    while ((sem_result = sem_timedwait(&buf->count, timeout)) == -1 && errno == EINTR) {
+        continue;
+    }
+
+    if (sem_result == -1) {
         return false;
     }
+
     memcpy(item, buf->tail, buf->elem_size);
     buf->tail = (char*)buf->tail + buf->elem_size;
     if (buf->tail == buf->buffer_end) {
         buf->tail = buf->buffer;
     }
-    buf->count--;
     return true;
 }
 

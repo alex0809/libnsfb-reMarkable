@@ -89,15 +89,7 @@ static int rm_finalise(nsfb_t *nsfb)
 
 static bool rm_input(nsfb_t *nsfb, nsfb_event_t *event, int timeout)
 {
-    do {
-        bool event_received = input_get_next_event(&input_state, nsfb, event);
-        if (event_received) {
-            return true;
-        }
-        nanosleep(&millisecond_sleep, &millisecond_sleep);
-        timeout--;
-    } while (timeout > 0);
-    return false;
+    return input_get_next_event(&input_state, nsfb, event, timeout);
 }
 
 static int rm_update(nsfb_t *nsfb, nsfb_bbox_t *box) {
