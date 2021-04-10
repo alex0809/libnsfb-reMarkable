@@ -60,9 +60,8 @@ static int input_push_new_pen_position(input_state_t *input_state)
 
 static int input_push_new_touch_position(input_state_t *input_state)
 {
-	if (input_state->multitouch_state.first_pressed_slot == -1 ||
-	    !input_state->multitouch_state
-		     .slots[input_state->multitouch_state.first_pressed_slot]
+	if (!input_state->multitouch_state
+		     .slots[input_state->multitouch_state.current_slot]
 		     .position_changed) {
 		return 0;
 	}
@@ -70,7 +69,7 @@ static int input_push_new_touch_position(input_state_t *input_state)
 	nsfb_event_t position_event;
 	input_single_state_t *single_state =
 		&input_state->multitouch_state.slots
-			 [input_state->multitouch_state.first_pressed_slot];
+			 [input_state->multitouch_state.current_slot];
 	single_state->position_changed = false;
 
 	position_event.type = NSFB_EVENT_MOVE_ABSOLUTE;
@@ -244,7 +243,7 @@ static int input_get_next_pen_event(input_state_t *input_state)
 				up_event.value.keycode = NSFB_KEY_MOUSE_1;
 				ring_buf_write(&input_state->events_buf,
 					       &up_event);
-				TRACE_LOG(
+				DEBUG_LOG(
 					"input_get_next_pen_event: Sent mouse up event (from pen touch)");
 
 				input_push_new_pen_position(input_state);
@@ -255,10 +254,6 @@ static int input_get_next_pen_event(input_state_t *input_state)
 			if (input_state->pen_state.touch_state_changed) {
 				input_push_new_pen_position(input_state);
 
-				input_state->multitouch_state
-					.first_pressed_slot =
-					input_state->multitouch_state
-						.current_slot;
 				nsfb_event_t down_event;
 				input_state->pen_state.touch_state_changed =
 					false;
@@ -266,7 +261,7 @@ static int input_get_next_pen_event(input_state_t *input_state)
 				down_event.value.keycode = NSFB_KEY_MOUSE_1;
 				ring_buf_write(&input_state->events_buf,
 					       &down_event);
-				TRACE_LOG(
+				DEBUG_LOG(
 					"input_get_next_pen_event: Sending mouse down event (from pen touch)");
 			}
 			break;
@@ -399,24 +394,6 @@ static int input_get_next_multitouch_event(input_state_t *input_state)
 				.slots[input_state->multitouch_state
 					       .current_slot]
 				.tracking_id_changed = true;
-
-			// Set/reset the first pressed slot - all others will be
-			// effectively ignored
-			if (input_state->multitouch_state.first_pressed_slot ==
-				    -1 &&
-			    ev.value != -1) {
-				input_state->multitouch_state
-					.first_pressed_slot =
-					input_state->multitouch_state
-						.current_slot;
-			}
-			if (input_state->multitouch_state.first_pressed_slot !=
-				    input_state->multitouch_state
-					    .current_slot &&
-			    ev.value == -1) {
-				input_state->multitouch_state
-					.first_pressed_slot = -1;
-			}
 			break;
 		case ABS_MT_SLOT:
 			input_state->multitouch_state.current_slot = ev.value;
@@ -431,21 +408,7 @@ static int input_get_next_multitouch_event(input_state_t *input_state)
 	case EV_SYN:
 		switch (ev.code) {
 		case SYN_REPORT:
-			// TODO do I have to spell it out?
-			if (input_state->multitouch_state.first_pressed_slot !=
-				    -1 &&
-			    input_state->multitouch_state.current_slot !=
-				    input_state->multitouch_state
-					    .first_pressed_slot) {
-				DEBUG_LOG(
-					"input_get_next_multitouch_event: Disregarding multitouch slot %d, I only care about first pressed slot %d",
-					input_state->multitouch_state
-						.current_slot,
-					input_state->multitouch_state
-						.first_pressed_slot);
-				break;
-			}
-
+            ;
 			input_single_state_t *current_slot =
 				&input_state->multitouch_state
 					 .slots[input_state->multitouch_state
@@ -460,8 +423,6 @@ static int input_get_next_multitouch_event(input_state_t *input_state)
 			// position
 			if (current_slot->tracking_id_changed &&
 			    current_slot->tracking_id == -1) {
-				input_state->multitouch_state
-					.first_pressed_slot = -1;
 				nsfb_event_t up_event;
 				current_slot->tracking_id_changed = false;
 				up_event.type = NSFB_EVENT_KEY_UP;
@@ -479,10 +440,6 @@ static int input_get_next_multitouch_event(input_state_t *input_state)
 			if (current_slot->tracking_id_changed) {
 				input_push_new_touch_position(input_state);
 
-				input_state->multitouch_state
-					.first_pressed_slot =
-					input_state->multitouch_state
-						.current_slot;
 				nsfb_event_t down_event;
 				current_slot->tracking_id_changed = false;
 				down_event.type = NSFB_EVENT_KEY_DOWN;
@@ -662,7 +619,6 @@ int input_initialize(input_state_t *input_state, nsfb_t *nsfb)
 	input_state->multitouch_state.min_y = absinfo_y->minimum;
 	input_state->multitouch_state.max_x = absinfo_x->maximum;
 	input_state->multitouch_state.max_y = absinfo_y->maximum;
-	input_state->multitouch_state.first_pressed_slot = -1;
 
 	DEBUG_LOG(
 		"input_initialize: Multitouch device has %d slots, x is between %d and %d, y is between %d and %d)",
@@ -721,6 +677,10 @@ bool input_get_next_event(input_state_t *input_state,
 			  int timeout)
 {
 	input_state->events_requested = true;
+
+    if (timeout > MAX_EVENT_POLL_TIMEOUT_MS) {
+        timeout = MAX_EVENT_POLL_TIMEOUT_MS;
+    }
 
 	struct timespec wait_timeout;
 	clock_gettime(CLOCK_REALTIME, &wait_timeout);

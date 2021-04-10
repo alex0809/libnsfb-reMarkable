@@ -14,6 +14,8 @@
 #define RM1_MACHINE_NAME_2 "reMarkable Prototype 1"
 #define RM2_MACHINE_NAME "reMarkable 2.0"
 
+#define MAX_EVENT_POLL_TIMEOUT_MS 250
+
 typedef struct input_single_state_s {
 	int tracking_id;
 	bool tracking_id_changed;
@@ -58,10 +60,6 @@ typedef struct input_multitouch_state_s {
 	int max_y;
 
 	int current_slot;
-
-	// a crude way to handle multitouch: disregard all slots after first
-	int first_pressed_slot;
-
 	input_single_state_t *slots;
 } input_multitouch_state_t;
 
