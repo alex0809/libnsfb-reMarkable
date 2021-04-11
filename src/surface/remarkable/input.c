@@ -243,7 +243,7 @@ static int input_get_next_pen_event(input_state_t *input_state)
 				up_event.value.keycode = NSFB_KEY_MOUSE_1;
 				ring_buf_write(&input_state->events_buf,
 					       &up_event);
-				DEBUG_LOG(
+				TRACE_LOG(
 					"input_get_next_pen_event: Sent mouse up event (from pen touch)");
 
 				input_push_new_pen_position(input_state);
@@ -261,7 +261,7 @@ static int input_get_next_pen_event(input_state_t *input_state)
 				down_event.value.keycode = NSFB_KEY_MOUSE_1;
 				ring_buf_write(&input_state->events_buf,
 					       &down_event);
-				DEBUG_LOG(
+				TRACE_LOG(
 					"input_get_next_pen_event: Sending mouse down event (from pen touch)");
 			}
 			break;
