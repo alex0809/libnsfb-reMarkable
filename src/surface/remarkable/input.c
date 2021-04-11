@@ -341,9 +341,13 @@ static int input_get_next_multitouch_event(input_state_t *input_state)
 			break;
 		case ABS_MT_POSITION_X:;
 			int translated_x =
-				input_state->screen_width -
 				(ev.value * input_state->screen_width /
 				 input_state->multitouch_state.max_x);
+			// invert x-axis only on RM1
+			if (input_state->model == RM1) {
+				translated_x = input_state->screen_width -
+					       translated_x;
+			}
 			if (input_state->multitouch_state
 				    .slots[input_state->multitouch_state
 						   .current_slot]
@@ -362,13 +366,9 @@ static int input_get_next_multitouch_event(input_state_t *input_state)
 			break;
 		case ABS_MT_POSITION_Y:;
 			int translated_y =
+				input_state->screen_height -
 				(ev.value * input_state->screen_height /
 				 input_state->multitouch_state.max_y);
-			// invert y-axis only on RM1
-			if (input_state->model == RM1) {
-				translated_y = input_state->screen_height -
-					       translated_y;
-			}
 			if (input_state->multitouch_state
 				    .slots[input_state->multitouch_state
 						   .current_slot]
